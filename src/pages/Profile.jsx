@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+ import React, { useEffect, useState } from 'react';
 import { 
   User, Phone, Mail, Edit3, Loader2, LogOut, 
   Camera, CheckCircle2, ChevronRight, ShieldCheck, 
   Bell, HelpCircle, Upload, Lock, KeyRound, 
-  MessageSquare, Info, Smartphone, Eye, EyeOff
+  MessageSquare, Info, Smartphone, Eye, EyeOff,
+  ChevronDown
 } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
@@ -109,7 +110,7 @@ const Profile = () => {
         {/* --- HEADER --- */}
         <div className="flex flex-col items-center mb-10">
           <div className="relative group">
-            <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-black flex items-center justify-center shadow-2xl border-4 border-white">
+            <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-black flex items-center justify-center shadow-2xl border-4 border-white transition-transform duration-500 group-hover:scale-105">
               {uploadingImage ? <Loader2 className="animate-spin text-white" /> : securityData.avatar_url ? <img src={securityData.avatar_url} className="w-full h-full object-cover" /> : <span className="text-white text-3xl font-black italic">{initial}</span>}
             </div>
             <label className="absolute -bottom-1 -right-1 bg-white p-2 rounded-xl shadow-lg border border-gray-100 cursor-pointer hover:bg-black hover:text-white transition-all"><Camera size={16} /><input type="file" className="hidden" onChange={handleAvatarUpload} /></label>
@@ -121,51 +122,49 @@ const Profile = () => {
         </div>
 
         {/* --- AREA KONTEN (ATAS) --- */}
-        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm min-h-[400px] mb-6">
+        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm min-h-[450px] mb-6">
           <AnimatePresence mode="wait">
             
             {activeTab === 'keamanan' && (
               <motion.div key="security" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                 <h3 className="text-lg font-black uppercase tracking-tighter border-b border-gray-100 pb-4">Pengaturan Keamanan</h3>
                 
-                {/* 1. SEKSI NAMA (Gaya AuthModal) */}
+                {/* 1. SEKSI NAMA */}
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Nama Depan</Label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                        <Input placeholder="Nama Depan" value={securityData.first_name} onChange={(e) => setSecurityData({...securityData, first_name: e.target.value})} className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium focus:ring-1 focus:ring-black" />
-                      </div>
+                      <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Nama Depan</Label>
+                      <Input placeholder="...." value={securityData.first_name} onChange={(e) => setSecurityData({...securityData, first_name: e.target.value})} className="h-12 rounded-xl border-gray-100 bg-white font-medium" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Nama Belakang</Label>
-                      <div className="relative">
-                        <User className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                        <Input placeholder="Nama Belakang" value={securityData.last_name} onChange={(e) => setSecurityData({...securityData, last_name: e.target.value})} className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium focus:ring-1 focus:ring-black" />
-                      </div>
+                      <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Nama Belakang</Label>
+                      <Input placeholder="...." value={securityData.last_name} onChange={(e) => setSecurityData({...securityData, last_name: e.target.value})} className="h-12 rounded-xl border-gray-100 bg-white font-medium" />
                     </div>
                   </div>
-                  <Button onClick={handleUpdateName} disabled={updating} className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest active:scale-95 transition-all">Update Nama</Button>
+                  <Button onClick={handleUpdateName} disabled={updating} className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest shadow-lg active:scale-95 transition-all">Update Nama</Button>
                 </div>
 
-                <div className="relative py-2"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-50"></span></div><div className="relative flex justify-center text-[10px] uppercase font-bold text-gray-200 bg-white px-4">Keamanan Data</div></div>
-
-                {/* 2. SEKSI PONSEL (Gaya AuthModal) */}
-                <div className="space-y-2">
-                  <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Nomor Ponsel</Label>
-                  <div className="flex gap-2">
+                {/* 2. SEKSI PONSEL (GAYA AUTHMODAL) */}
+                <div className="space-y-4 pt-4 border-t border-gray-50">
+                  <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Nomor Ponsel</Label>
+                  <div className="flex gap-2 items-center">
+                    {/* Pemilih Kode Negara & Bendera */}
+                    <div className="flex items-center gap-2 px-3 h-12 rounded-xl border border-gray-100 bg-white shadow-sm min-w-[100px] justify-center">
+                      <img src="https://flagcdn.com/w40/id.png" alt="ID" className="w-5 h-3 object-cover rounded-sm" />
+                      <span className="text-[13px] font-bold text-black">+62</span>
+                      <ChevronDown size={14} className="text-gray-400" />
+                    </div>
+                    {/* Input Nomor */}
                     <div className="relative flex-1">
-                      <Phone className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                      <Input value={securityData.phone} onChange={(e) => setSecurityData({...securityData, phone: e.target.value})} className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-bold" />
+                      <Input value={securityData.phone} onChange={(e) => setSecurityData({...securityData, phone: e.target.value})} className="h-12 rounded-xl border-gray-100 bg-white font-bold" placeholder="81..." />
                     </div>
-                    <Button onClick={handleRequestOTP} disabled={updating} variant="outline" className="h-12 rounded-xl font-bold text-[10px] px-6 border-gray-100 uppercase">Kirim OTP</Button>
                   </div>
+                  <Button onClick={handleRequestOTP} disabled={updating} className="w-full bg-white text-black border border-gray-100 rounded-xl h-11 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors">Kirim Kode Verifikasi (OTP)</Button>
                 </div>
 
-                {/* 3. SEKSI PASSWORD (Gaya AuthModal dengan Eye Icon) */}
-                <div className="space-y-4 pt-4">
-                  <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Ubah Kata Sandi</Label>
+                {/* 3. SEKSI PASSWORD */}
+                <div className="space-y-4 pt-4 border-t border-gray-50">
+                  <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Ubah Kata Sandi</Label>
                   
                   {/* Password Lama */}
                   <div className="relative">
@@ -194,25 +193,25 @@ const Profile = () => {
                     </button>
                   </div>
 
-                  <Button className="w-full bg-black text-white rounded-xl h-14 font-black text-[11px] tracking-[0.2em] uppercase mt-2 shadow-xl shadow-gray-100 active:scale-95 transition-all">Ganti Kata Sandi</Button>
+                  <Button className="w-full bg-black text-white rounded-xl h-14 font-black text-[11px] tracking-[0.2em] uppercase mt-4 shadow-xl shadow-gray-100 active:scale-95 transition-all">Ganti Kata Sandi</Button>
                 </div>
               </motion.div>
             )}
 
-            {/* TAB PLACEHOLDER */}
+            {/* TAB LAINNYA */}
             {activeTab === 'profil' && (
               <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <h3 className="text-lg font-black uppercase tracking-tighter border-b border-gray-100 pb-4">Profil & Identitas</h3>
                 <div className="p-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
                   <Upload className="text-gray-300 group-hover:text-black mb-2 transition-colors" size={32} />
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic group-hover:text-black transition-colors">Unggah KTP Sesuai Data</span>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic group-hover:text-black">Unggah KTP Sesuai Data</span>
                 </div>
-                <Button className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg">Daftar Jadi Mitra</Button>
+                <Button className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Daftar Jadi Mitra</Button>
               </motion.div>
             )}
 
-            {activeTab === 'notifikasi' && <div className="flex flex-col items-center justify-center py-20 text-gray-300 font-black uppercase italic tracking-widest text-[11px] gap-2"><Bell size={32} className="opacity-20" /> No Notifications</div>}
-            {activeTab === 'bantuan' && <div className="flex flex-col items-center justify-center py-20 text-gray-300 font-black uppercase italic tracking-widest text-[11px] gap-2"><HelpCircle size={32} className="opacity-20" /> Help Center</div>}
+            {activeTab === 'notifikasi' && <div className="flex flex-col items-center justify-center py-24 text-gray-300 font-black uppercase italic tracking-widest text-[11px] gap-2 opacity-30"><Bell size={32} /> No Notifications</div>}
+            {activeTab === 'bantuan' && <div className="flex flex-col items-center justify-center py-24 text-gray-300 font-black uppercase italic tracking-widest text-[11px] gap-2 opacity-30"><HelpCircle size={32} /> Help Center</div>}
 
           </AnimatePresence>
         </div>
