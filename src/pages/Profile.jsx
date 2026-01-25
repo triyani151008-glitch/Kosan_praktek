@@ -76,81 +76,80 @@ const Profile = () => {
     <div className="min-h-screen bg-[#F9F9F9] text-black pb-12 pt-10">
       <div className="container mx-auto px-4 max-w-2xl">
         
-        {/* --- 1. AREA TAMPILAN KONTEN (ATAS) --- */}
-        <div className="bg-white rounded-[40px] p-8 md:p-10 border border-gray-100 shadow-sm min-h-[400px] mb-6">
+        {/* --- 1. HEADER UTAMA (FOTO PROFIL DI LUAR MENU) --- */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="relative">
+            <div className="w-28 h-28 rounded-[38px] overflow-hidden bg-black flex items-center justify-center shadow-2xl border-4 border-white">
+              {uploadingImage ? (
+                <Loader2 className="animate-spin text-white" />
+              ) : profile.avatar_url ? (
+                <img src={profile.avatar_url} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-4xl font-black italic">{initial}</span>
+              )}
+            </div>
+            <label className="absolute -bottom-2 -right-2 bg-white p-2.5 rounded-2xl shadow-lg border border-gray-100 cursor-pointer hover:bg-black hover:text-white transition-all active:scale-90">
+              <Camera size={18} /><input type="file" className="hidden" onChange={handleAvatarUpload} />
+            </label>
+          </div>
+          <div className="text-center mt-4">
+            <h2 className="text-2xl font-black italic uppercase tracking-tighter">{profile.first_name} {profile.last_name}</h2>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{profile.email}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* --- 2. AREA TAMPILAN ISI (ATAS) --- */}
+        <div className="bg-white rounded-[40px] p-8 md:p-10 border border-gray-100 shadow-sm min-h-[350px] mb-6">
           <AnimatePresence mode="wait">
             
-            {/* TAB NOTIFIKASI */}
             {activeTab === 'notifikasi' && (
-              <motion.div key="notif" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-xl font-black italic border-l-4 border-black pl-4 uppercase tracking-tighter">Kotak Masuk</h3>
-                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex gap-4 items-center">
-                  <div className="p-3 bg-black text-white rounded-2xl"><Info size={24} /></div>
-                  <div>
-                    <p className="font-bold text-sm">Pembaruan Sistem</p>
-                    <p className="text-xs text-gray-500">Fitur KYC kini sudah tersedia di menu Profil.</p>
-                  </div>
+              <motion.div key="notif" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                <h3 className="text-lg font-black italic uppercase border-b-2 border-black pb-2 inline-block">Notifikasi</h3>
+                <div className="bg-gray-50 p-6 rounded-3xl flex gap-4 items-center">
+                  <Bell className="text-gray-300" />
+                  <p className="text-xs font-bold text-gray-500 italic leading-relaxed">Belum ada pesan masuk untuk saat ini.</p>
                 </div>
               </motion.div>
             )}
 
-            {/* TAB PROFIL & KYC */}
             {activeTab === 'profil' && (
-              <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-black flex items-center justify-center shadow-2xl">
-                      {uploadingImage ? <Loader2 className="animate-spin text-white" /> : profile.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" /> : <span className="text-white text-4xl font-black italic">{initial}</span>}
-                    </div>
-                    <label className="absolute -bottom-2 -right-2 bg-white p-2 rounded-xl shadow-lg border border-gray-100 cursor-pointer hover:bg-black hover:text-white transition-all">
-                      <Camera size={16} /><input type="file" className="hidden" onChange={handleAvatarUpload} />
-                    </label>
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter">Profil & Identitas</h3>
-                    <p className="text-xs text-gray-400 font-bold mt-1 uppercase">{profile.email}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Nama Lengkap</Label>
-                    <Input value={`${profile.first_name} ${profile.last_name}`} readOnly className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
-                  </div>
-                  <div className="p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition-all">
+              <motion.div key="profile" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-8">
+                <h3 className="text-lg font-black italic uppercase border-b-2 border-black pb-2 inline-block">Verifikasi & Mitra</h3>
+                
+                <div className="space-y-4">
+                  <div className="p-6 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center">
                     <Upload className="text-gray-300 mb-2" size={24} />
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Ketuk Untuk Upload KTP</span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Unggah KTP (KYC)</span>
+                  </div>
+                  
+                  <div className="p-6 bg-black text-white rounded-3xl flex flex-col gap-4 shadow-xl">
+                     <p className="font-bold text-sm italic tracking-tight">Ingin menyewakan properti Anda?</p>
+                     <Button className="bg-white text-black hover:bg-gray-200 font-black rounded-xl w-full h-12 text-xs">DAFTAR JADI MITRA</Button>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* TAB KEAMANAN */}
             {activeTab === 'keamanan' && (
-              <motion.div key="security" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-xl font-black italic border-l-4 border-black pl-4 uppercase tracking-tighter">Keamanan</h3>
-                <div className="p-6 bg-white rounded-3xl border border-gray-100 flex items-center justify-between group">
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-gray-50 rounded-xl"><Lock className="text-black" size={20} /></div>
-                    <span className="font-bold text-sm">Ganti Password</span>
-                  </div>
-                  <Button variant="outline" size="sm" className="rounded-xl font-black text-[10px]">UBAH</Button>
+              <motion.div key="security" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                <h3 className="text-lg font-black italic uppercase border-b-2 border-black pb-2 inline-block">Keamanan</h3>
+                <div className="p-5 bg-white rounded-2xl border border-gray-100 flex items-center justify-between group">
+                  <div className="flex items-center gap-4"><Lock className="text-gray-400" size={20} /> <span className="font-bold text-sm">Ganti Password</span></div>
+                  <ChevronRight size={18} className="text-gray-200" />
                 </div>
               </motion.div>
             )}
 
-            {/* TAB BANTUAN */}
             {activeTab === 'bantuan' && (
-              <motion.div key="help" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-xl font-black italic border-l-4 border-black pl-4 uppercase tracking-tighter">Bantuan</h3>
-                <div className="grid grid-cols-1 gap-4 text-left">
-                  <button className="p-6 bg-black text-white rounded-3xl flex items-center justify-between shadow-xl">
-                    <div>
-                      <MessageSquare className="mb-2" size={24} />
-                      <p className="font-black italic uppercase tracking-tighter">Layanan Chat CS</p>
-                    </div>
-                    <ChevronRight className="text-gray-500" />
-                  </button>
+              <motion.div key="help" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                <h3 className="text-lg font-black italic uppercase border-b-2 border-black pb-2 inline-block">Bantuan</h3>
+                <div className="p-6 bg-gray-50 rounded-3xl flex flex-col gap-2">
+                  <MessageSquare className="text-black" />
+                  <p className="font-black text-sm uppercase italic">Pusat Bantuan Kosan</p>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">Hubungi admin melalui kanal resmi untuk bantuan teknis.</p>
                 </div>
               </motion.div>
             )}
@@ -158,10 +157,10 @@ const Profile = () => {
           </AnimatePresence>
         </div>
 
-        {/* --- 2. KARTU MENU NAVIGASI (BAWAH) --- */}
+        {/* --- 3. KARTU MENU NAVIGASI (BAWAH) --- */}
         <div className="bg-white rounded-[40px] p-6 border border-gray-100 shadow-sm">
           <div className="mb-6 px-2">
-            <h2 className="text-2xl font-black italic tracking-tighter uppercase underline decoration-4 underline-offset-8 decoration-gray-100">Pengaturan</h2>
+            <h2 className="text-2xl font-black italic tracking-tighter uppercase">Pengaturan</h2>
           </div>
           
           <div className="grid grid-cols-1 gap-2">
@@ -175,7 +174,7 @@ const Profile = () => {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center justify-between p-5 rounded-2xl font-bold transition-all ${
-                  activeTab === item.id ? 'bg-black text-white shadow-xl translate-x-1' : 'text-gray-400 hover:bg-gray-50'
+                  activeTab === item.id ? 'bg-black text-white shadow-xl scale-[1.02]' : 'text-gray-400 hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -187,22 +186,13 @@ const Profile = () => {
             ))}
 
             <div className="pt-4 mt-2 border-t border-gray-50">
-              <button 
-                onClick={handleLogout}
-                className="w-full flex items-center justify-between p-5 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <LogOut size={20} />
-                  <span className="text-sm uppercase tracking-tighter italic">Keluar dari Akun</span>
-                </div>
+              <button onClick={handleLogout} className="w-full flex items-center justify-between p-5 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-all">
+                <div className="flex items-center gap-4"><LogOut size={20} /><span className="text-sm uppercase tracking-tighter italic">Logout Akun</span></div>
                 <ChevronRight size={18} className="text-red-100" />
               </button>
             </div>
           </div>
         </div>
-
-        {/* Footer info */}
-        <p className="text-center mt-10 text-[10px] font-black text-gray-300 uppercase tracking-[0.3em]">Kosan V4.0 &bull; 2026</p>
 
       </div>
     </div>
