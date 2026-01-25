@@ -96,15 +96,15 @@ const Profile = () => {
 
   const handleLogout = async () => { await signOut(); navigate('/'); };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-white" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-black" /></div>;
 
   const initial = securityData.first_name && securityData.first_name.length > 0 ? securityData.first_name[0].toUpperCase() : 'U';
 
   return (
-    <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-24 pt-10">
+    <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-20 pt-10">
       <div className="container mx-auto px-4 max-w-2xl">
         
-        {/* --- HEADER --- */}
+        {/* --- 1. HEADER UTAMA --- */}
         <div className="flex flex-col items-center mb-10">
           <div className="relative group">
             <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-black flex items-center justify-center shadow-2xl border-4 border-white transition-transform duration-500 group-hover:scale-105">
@@ -118,15 +118,13 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* --- AREA KONTEN --- */}
-        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm min-h-[450px] mb-6">
+        {/* --- 2. KARTU ISI KONTEN (TENGAH) --- */}
+        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm min-h-[400px] mb-6">
           <AnimatePresence mode="wait">
             
             {activeTab === 'keamanan' && (
               <motion.div key="security" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                 <h3 className="text-lg font-black uppercase tracking-tighter border-b border-gray-100 pb-4 italic">Pengaturan Keamanan</h3>
-                
-                {/* NAMA - Placeholder Faded */}
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -140,8 +138,6 @@ const Profile = () => {
                   </div>
                   <Button onClick={handleUpdateName} disabled={updating} className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest shadow-lg active:scale-95 transition-all">Update Nama</Button>
                 </div>
-
-                {/* PONSEL - Placeholder Faded */}
                 <div className="space-y-4 pt-4 border-t border-gray-50 relative">
                   <Label className="text-[11px] font-bold text-gray-400 uppercase ml-1">Nomor Ponsel</Label>
                   <div className="flex gap-2 items-center">
@@ -166,10 +162,8 @@ const Profile = () => {
                   </div>
                   <Button className="w-full bg-white text-black border border-gray-100 rounded-xl h-11 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all">Kirim Kode Verifikasi (OTP)</Button>
                 </div>
-
-                {/* PASSWORD - Placeholder Faded */}
                 <div className="space-y-4 pt-4 border-t border-gray-50">
-                  <Label className="text-[11px] font-bold text-gray-400 uppercase ml-1">Ubah Kata Sandi</Label>
+                  <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Ubah Kata Sandi</Label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-3.5 text-gray-300" size={18} />
                     <Input type={showOldPass ? "text" : "password"} placeholder="Kata Sandi Lama" value={securityData.oldPassword} onChange={(e) => setSecurityData({...securityData, oldPassword: e.target.value})} className="h-12 pl-12 pr-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" />
@@ -178,12 +172,12 @@ const Profile = () => {
                   <div className="relative">
                     <Lock className="absolute left-4 top-3.5 text-gray-300" size={18} />
                     <Input type={showNewPass ? "text" : "password"} placeholder="Kata Sandi Baru" value={securityData.newPassword} onChange={(e) => setSecurityData({...securityData, newPassword: e.target.value})} className="h-12 pl-12 pr-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" />
-                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-4 top-3.5 text-gray-300 hover:text-black">{showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-4 top-3.5 text-gray-400 hover:text-black">{showNewPass ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-3.5 text-gray-300" size={18} />
                     <Input type={showConfirmPass ? "text" : "password"} placeholder="Konfirmasi Kata Sandi Baru" value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="h-12 pl-12 pr-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" />
-                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-4 top-3.5 text-gray-300 hover:text-black">{showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-4 top-3.5 text-gray-400 hover:text-black">{showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                   </div>
                   <Button className="w-full bg-black text-white rounded-xl h-14 font-black text-[11px] tracking-[0.2em] uppercase mt-4 shadow-xl active:scale-95 transition-all">Ganti Kata Sandi</Button>
                 </div>
@@ -192,7 +186,7 @@ const Profile = () => {
 
             {activeTab === 'profil' && (
               <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                <h3 className="text-lg font-black uppercase border-b border-gray-100 pb-4 italic tracking-tighter">Profil & Identitas</h3>
+                <h3 className="text-lg font-black uppercase border-b border-gray-100 pb-4 italic tracking-tighter">Profil & KYC</h3>
                 <div className="p-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group shadow-sm active:scale-95 transition-all">
                   <Upload className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
                   <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic text-center transition-colors">Unggah KTP Sesuai Identitas</span>
@@ -201,16 +195,15 @@ const Profile = () => {
               </motion.div>
             )}
 
-            {/* TAB PLACEHOLDER */}
             {activeTab === 'notifikasi' && <div className="flex flex-col items-center justify-center py-24 text-gray-200 font-black uppercase italic tracking-widest text-[11px] gap-2 opacity-30"><Bell size={32} /> No Notifications</div>}
             {activeTab === 'bantuan' && <div className="flex flex-col items-center justify-center py-24 text-gray-200 font-black uppercase italic tracking-widest text-[11px] gap-2 opacity-30"><HelpCircle size={32} /> Help Center</div>}
 
           </AnimatePresence>
         </div>
 
-        {/* --- MENU PENGATURAN --- */}
-        <div className="bg-white rounded-[40px] p-6 border border-gray-100 shadow-sm">
-          <h2 className="text-2xl font-black italic uppercase mb-6 px-2 tracking-tighter underline decoration-4 underline-offset-8 decoration-gray-50">Pengaturan</h2>
+        {/* --- 3. KARTU MENU PENGATURAN (BAWAH) --- */}
+        <div className="bg-white rounded-[40px] p-6 border border-gray-100 shadow-sm mb-6">
+          <div className="mb-6 px-2"><h2 className="text-2xl font-black italic uppercase tracking-tighter underline decoration-4 underline-offset-8 decoration-gray-50">Pengaturan</h2></div>
           <div className="grid grid-cols-1 gap-2">
             {[
               { id: 'notifikasi', label: 'Notifikasi', icon: Bell },
@@ -223,13 +216,18 @@ const Profile = () => {
                 <ChevronRight size={18} className={activeTab === item.id ? 'text-white' : 'text-gray-200'} />
               </button>
             ))}
-            <div className="pt-4 mt-2 border-t border-gray-50">
-              <button onClick={handleLogout} className="w-full flex items-center justify-between p-5 text-red-500 font-bold hover:bg-red-50 rounded-2xl active:scale-95 transition-all">
-                <div className="flex items-center gap-4"><LogOut size={20} /><span className="text-sm uppercase italic font-black">Logout Akun</span></div>
-                <ChevronRight size={18} className="text-red-100" />
-              </button>
-            </div>
           </div>
+        </div>
+
+        {/* --- 4. TOMBOL LOGOUT TERPISAH (PALING BAWAH) --- */}
+        <div className="pt-4">
+          <button 
+            onClick={handleLogout} 
+            className="w-full flex items-center justify-center gap-4 p-5 text-red-500 font-black uppercase italic tracking-widest bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-95 transition-all hover:bg-red-50"
+          >
+            <LogOut size={22} />
+            <span className="text-sm">Logout dari Akun</span>
+          </button>
         </div>
 
       </div>
