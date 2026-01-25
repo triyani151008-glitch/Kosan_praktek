@@ -73,97 +73,88 @@ const Profile = () => {
   const initial = profile.first_name ? profile.first_name[0].toUpperCase() : 'U';
 
   return (
-    <div className="min-h-screen bg-[#F9F9F9] text-black pb-32 pt-10 flex flex-col items-center">
+    <div className="min-h-screen bg-[#F9F9F9] text-black pb-40 pt-10 flex flex-col items-center">
       <div className="container mx-auto px-4 max-w-2xl flex-1">
         
         {/* --- 1. KONTEN TAMPILAN (DI ATAS) --- */}
-        <div className="bg-white rounded-[40px] p-8 md:p-10 border border-gray-100 shadow-sm min-h-[500px] mb-8">
+        <div className="bg-white rounded-[40px] p-8 md:p-10 border border-gray-100 shadow-sm min-h-[520px] mb-8">
           <AnimatePresence mode="wait">
             
-            {/* NOTIFIKASI */}
             {activeTab === 'notifikasi' && (
-              <motion.div key="notif" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-2xl font-black italic">Kotak Masuk</h3>
-                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex gap-4 items-center">
+              <motion.div key="notif" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6 text-center sm:text-left">
+                <h3 className="text-xl font-black italic border-b-4 border-black inline-block pb-1">Notifikasi</h3>
+                <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 flex gap-4 items-center mt-6">
                   <div className="p-3 bg-black text-white rounded-2xl shadow-lg"><Info size={24} /></div>
-                  <div>
-                    <p className="font-bold text-base">Verifikasi Akun</p>
-                    <p className="text-xs text-gray-500">Mohon lengkapi KYC untuk keamanan data Anda.</p>
+                  <div className="text-left">
+                    <p className="font-bold text-sm">Pesan Sistem</p>
+                    <p className="text-xs text-gray-500 font-medium leading-relaxed">Selamat datang di Kosan App! Jangan lupa lengkapi data diri Anda.</p>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* PROFIL & KYC */}
             {activeTab === 'profil' && (
-              <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
+              <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative">
-                    <div className="w-28 h-28 rounded-[36px] overflow-hidden bg-black flex items-center justify-center shadow-2xl">
-                      {uploadingImage ? <Loader2 className="animate-spin text-white" /> : profile.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" /> : <span className="text-white text-4xl font-bold italic">{initial}</span>}
+                    <div className="w-24 h-24 rounded-3xl overflow-hidden bg-black flex items-center justify-center shadow-xl">
+                      {uploadingImage ? <Loader2 className="animate-spin text-white" /> : profile.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" /> : <span className="text-white text-3xl font-bold">{initial}</span>}
                     </div>
-                    <label className="absolute -bottom-2 -right-2 bg-white p-2.5 rounded-2xl shadow-lg border border-gray-100 cursor-pointer hover:bg-black hover:text-white transition-all">
-                      <Camera size={18} /><input type="file" className="hidden" onChange={handleAvatarUpload} />
+                    <label className="absolute -bottom-2 -right-2 bg-white p-2 rounded-xl shadow-md border border-gray-100 cursor-pointer hover:bg-black hover:text-white transition-all">
+                      <Camera size={16} /><input type="file" className="hidden" onChange={handleAvatarUpload} />
                     </label>
                   </div>
-                  <div className="text-center">
-                    <h3 className="text-2xl font-black uppercase tracking-tighter italic underline decoration-4 underline-offset-4">Profil & KYC</h3>
-                    <p className="text-xs text-gray-400 font-bold mt-2 uppercase tracking-widest">{profile.email}</p>
-                  </div>
+                  <h3 className="text-xl font-black italic uppercase tracking-tighter">Profil & Identitas</h3>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Nama Lengkap</Label>
-                    <Input value={`${profile.first_name} ${profile.last_name}`} readOnly className="h-14 rounded-2xl bg-gray-50 border-none font-bold" />
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Nama Lengkap</Label>
+                    <Input value={`${profile.first_name} ${profile.last_name}`} readOnly className="h-12 rounded-xl bg-gray-50 border-none font-bold" />
                   </div>
                   <div className="space-y-2 pt-4">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Unggah KTP (KYC)</Label>
-                    <div className="h-32 border-2 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-100 cursor-pointer transition-all">
-                      <Upload className="text-gray-300 mb-2" />
-                      <span className="text-xs font-bold text-gray-400 uppercase italic">Ketuk untuk ambil foto</span>
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Verifikasi KTP (KYC)</Label>
+                    <div className="h-28 border-2 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center bg-gray-50/50">
+                      <Upload className="text-gray-300 mb-2" size={20} />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase italic">Ketuk untuk Ambil Foto</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-black rounded-3xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-                   <p className="font-bold text-sm italic">Mau jadi Mitra Properti?</p>
-                   <Button className="bg-white text-black hover:bg-gray-200 font-black rounded-xl px-6 h-10 shadow-lg text-xs">DAFTAR MITRA</Button>
+                <div className="p-6 bg-black rounded-3xl text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl mt-6">
+                   <p className="font-bold text-xs italic tracking-tight">Ingin menyewakan properti?</p>
+                   <Button className="bg-white text-black hover:bg-gray-200 font-black rounded-xl px-6 h-10 shadow-lg text-[10px]">DAFTAR MITRA</Button>
                 </div>
               </motion.div>
             )}
 
-            {/* KEAMANAN */}
             {activeTab === 'keamanan' && (
-              <motion.div key="security" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-2xl font-black italic">Keamanan Akun</h3>
-                <div className="space-y-4">
-                  <div className="p-6 bg-white rounded-3xl border border-gray-100 flex items-center justify-between shadow-sm">
-                    <div className="flex items-center gap-4">
-                      <Lock className="text-gray-400" /> <span className="font-bold text-sm">Ganti Password</span>
-                    </div>
-                    <Button variant="outline" size="sm" className="rounded-xl font-black">UBAH</Button>
+              <motion.div key="security" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                <h3 className="text-xl font-black italic border-b-4 border-black inline-block pb-1">Keamanan</h3>
+                <div className="p-5 bg-white rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm mt-6">
+                  <div className="flex items-center gap-4 text-gray-400">
+                    <KeyRound size={20} /> <span className="font-bold text-sm text-black">Ganti Password</span>
                   </div>
+                  <Button variant="outline" size="sm" className="rounded-lg font-black text-xs">UBAH</Button>
                 </div>
               </motion.div>
             )}
 
-            {/* BANTUAN */}
             {activeTab === 'bantuan' && (
-              <motion.div key="help" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-                <h3 className="text-2xl font-black italic">Bantuan</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <button className="p-6 bg-black text-white rounded-3xl text-left shadow-xl flex items-center justify-between group transition-all">
+              <motion.div key="help" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+                <h3 className="text-xl font-black italic border-b-4 border-black inline-block pb-1">Bantuan</h3>
+                <div className="grid grid-cols-1 gap-4 mt-6">
+                  <button className="p-6 bg-black text-white rounded-3xl text-left shadow-xl flex items-center justify-between">
                     <div>
                       <MessageSquare className="mb-2" size={24} />
-                      <p className="font-black text-base italic uppercase tracking-tighter">Layanan Chat CS</p>
+                      <p className="font-black text-sm italic uppercase tracking-tighter leading-none">Layanan Chat CS</p>
                     </div>
                     <ChevronRight className="text-gray-500" />
                   </button>
-                  <button className="p-6 bg-white border border-gray-100 rounded-3xl text-left shadow-sm flex items-center justify-between group transition-all">
+                  <button className="p-6 bg-white border border-gray-100 rounded-3xl text-left shadow-sm flex items-center justify-between">
                     <div>
                       <HelpCircle className="mb-2 text-gray-400" size={24} />
-                      <p className="font-black text-base italic uppercase tracking-tighter text-gray-400">Pusat Informasi</p>
+                      <p className="font-black text-sm italic uppercase tracking-tighter text-gray-400">FAQ App</p>
                     </div>
                     <ChevronRight className="text-gray-100" />
                   </button>
@@ -175,37 +166,35 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* --- 2. KARTU MENU NAVIGASI (DI BAWAH) --- */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white/80 backdrop-blur-xl rounded-[32px] p-3 border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
-        <div className="flex justify-between items-center gap-1">
+      {/* --- 2. KARTU MENU NAVIGASI BERGAYA SIDEBAR (DI BAWAH) --- */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-lg bg-white rounded-[32px] p-3 border border-gray-200 shadow-[0_25px_60px_rgba(0,0,0,0.15)] overflow-x-auto">
+        <div className="flex items-center gap-2 min-w-max">
           {[
-            { id: 'notifikasi', icon: Bell },
-            { id: 'profil', icon: User },
-            { id: 'keamanan', icon: ShieldCheck },
-            { id: 'bantuan', icon: HelpCircle },
+            { id: 'notifikasi', label: 'Notifikasi', icon: Bell },
+            { id: 'profil', label: 'Profil & KYC', icon: User },
+            { id: 'keamanan', label: 'Keamanan', icon: ShieldCheck },
+            { id: 'bantuan', label: 'Bantuan', icon: HelpCircle },
           ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`p-4 rounded-2xl transition-all relative ${
-                activeTab === item.id ? 'bg-black text-white scale-110 shadow-lg' : 'text-gray-300 hover:text-black'
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold transition-all text-xs ${
+                activeTab === item.id ? 'bg-black text-white shadow-xl scale-105' : 'text-gray-400 hover:bg-gray-50 hover:text-black'
               }`}
             >
-              <item.icon size={22} />
-              {activeTab === item.id && (
-                <motion.div layoutId="activeDot" className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full" />
-              )}
+              <item.icon size={16} />
+              <span>{item.label}</span>
             </button>
           ))}
           
-          <div className="w-[1px] h-8 bg-gray-100 mx-1" /> {/* Pembatas */}
+          <div className="w-[1px] h-8 bg-gray-100 mx-2 shrink-0" /> 
           
           <button 
             onClick={handleLogout}
-            className="p-4 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-            title="Logout"
+            className="flex items-center gap-2 px-5 py-3 text-red-500 font-bold hover:bg-red-50 rounded-2xl transition-all text-xs shrink-0"
           >
-            <LogOut size={22} />
+            <LogOut size={16} />
+            <span>Keluar</span>
           </button>
         </div>
       </div>
