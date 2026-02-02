@@ -20,45 +20,55 @@ const PartnerRegistration = () => {
     photo_url: '',
   });
 
-  // --- AKTIVASI UNGGAH FOTO PROPERTI ---
   const handlePhotoUpload = async (event) => {
     try {
       setLoading(true);
       const file = event.target.files[0];
       if (!file) return;
+
       const filePath = `properties/${user.id}/${Date.now()}`;
-      const { error: uploadError } = await supabase.storage.from('property-images').upload(filePath, file);
+      
+      // Mengunggah ke bucket 'property-images'
+      const { error: uploadError } = await supabase.storage
+        .from('property-images')
+        .upload(filePath, file);
+
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from('property-images').getPublicUrl(filePath);
+
+      const { data: urlData } = supabase.storage
+        .from('property-images')
+        .getPublicUrl(filePath);
+
       setFormData(prev => ({ ...prev, photo_url: urlData.publicUrl }));
-      toast({ title: "Berhasil", description: "Foto properti tersimpan." });
-    } catch (error) { toast({ variant: "destructive", description: "Gagal unggah foto." }); }
-    finally { setLoading(false); }
+      toast({ title: "Berhasil!", description: "Foto properti tersimpan." });
+    } catch (error) { 
+      toast({ variant: "destructive", title: "Gagal unggah foto!", description: "Cek apakah bucket 'property-images' sudah Public." }); 
+    } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.photo_url) return toast({ variant: "destructive", description: "Harap unggah foto properti dahulu." });
+
     setLoading(true);
     try {
-      // Update status mitra & role di Supabase
       const { error } = await supabase
         .from('profiles')
         .update({ 
           is_mitra: true, 
           role: 'mitra',
-          first_name: formData.kosName // Menggunakan nama kos sebagai identitas awal mitra
+          first_name: formData.kosName,
+          property_photo_url: formData.photo_url 
         })
         .eq('id', user.id);
 
       if (error) throw error;
 
-      toast({ title: "Pendaftaran Berhasil!", description: "Anda resmi menjadi Mitra Kosan." });
+      toast({ title: "Pendaftaran Berhasil!", description: "Selamat datang di kemitraan Kosan." });
       navigate('/profile');
     } catch (error) {
-      toast({ variant: "destructive", description: "Gagal mendaftar: " + error.message });
-    } finally {
-      setLoading(false);
-    }
+      toast({ variant: "destructive", title: "Gagal Mendaftar", description: error.message });
+    } finally { setLoading(false); }
   };
 
   return (
@@ -75,12 +85,12 @@ const PartnerRegistration = () => {
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-black text-white rounded-[20px] flex items-center justify-center mx-auto mb-4 shadow-xl"><Home size={32} /></div>
             <h2 className="text-xl font-black uppercase italic tracking-tight">Informasi Properti</h2>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Lengkapi data kos/apartemen Anda</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Lengkapi data kos/apartemen Anda</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Nama Kos / Properti</Label>
+              <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Nama Kos / Properti</Label>
               <div className="relative">
                 <Home className="absolute left-4 top-3.5 text-gray-300" size={18} />
                 <Input placeholder="Contoh: Kosan Haurgeulis" className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" required value={formData.kosName} onChange={(e) => setFormData({...formData, kosName: e.target.value})} />
@@ -88,21 +98,21 @@ const PartnerRegistration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Alamat Lengkap Properti</Label>
+              <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Alamat Lengkap Properti</Label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-3.5 text-gray-300" size={18} />
                 <Input placeholder="Jalan, No, RT/RW, Kecamatan..." className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
               </div>
             </div>
 
-            <div className="relative p-8 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-all cursor-pointer group">
+            <div className="relative p-10 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-all cursor-pointer group">
               {formData.photo_url ? (
-                <div className="flex flex-col items-center"><CheckCircle2 className="text-green-500 mb-2" /><span className="text-[10px] font-black uppercase">Foto Berhasil Diunggah</span></div>
+                <div className="flex flex-col items-center"><CheckCircle2 className="text-green-500 mb-2" size={32} /><span className="text-[10px] font-black text-green-600 uppercase italic">Foto Berhasil Diunggah</span></div>
               ) : (
                 <>
-                  <Camera className="text-gray-200 group-hover:text-black mb-2" size={32} />
-                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase italic">Unggah Foto Properti</span>
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handlePhotoUpload} />
+                  <Camera className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
+                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic">Unggah Foto Properti</span>
+                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handlePhotoUpload} disabled={loading} />
                 </>
               )}
             </div>
