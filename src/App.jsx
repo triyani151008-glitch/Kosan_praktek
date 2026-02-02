@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet';
 import Home from '@/pages/Home';
 import Profile from '@/pages/Profile'; 
 import PropertyDetail from '@/pages/PropertyDetail';
+import PartnerRegistration from '@/pages/PartnerRegistration'; // Import Halaman Mitra
 // --- IMPORT HALAMAN BARU ---
 import ForgotPassword from '@/pages/ForgotPassword';
 import UpdatePassword from '@/pages/UpdatePassword';
@@ -23,11 +24,9 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/register-mitra" element={<PartnerRegistration />} /> {/* Rute Baru Aktif */}
           
-          {/* Rute Dinamis untuk Detail Properti */}
           <Route path="/property/:id" element={<PropertyDetail />} />
-
-          {/* --- RUTE LUPA PASSWORD --- */}
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           
