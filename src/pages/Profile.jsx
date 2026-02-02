@@ -36,7 +36,7 @@ const Profile = () => {
   const [securityData, setSecurityData] = useState({
     first_name: '', last_name: '', phone: '',
     oldPassword: '', newPassword: '', confirmPassword: '',
-    otpCode: '', avatar_url: ''
+    otpCode: '', avatar_url: '', kyc_url: ''
   });
   
   const [showOldPass, setShowOldPass] = useState(false);
@@ -54,8 +54,9 @@ const Profile = () => {
             ...prev,
             first_name: data.first_name || '',
             last_name: data.last_name || '',
-            phone: data.phone || user.phone || '', 
-            avatar_url: data.avatar_url || ''
+            phone: data.phone?.replace(selectedCountry.code, '') || '', 
+            avatar_url: data.avatar_url || '',
+            kyc_url: data.kyc_url || ''
           }));
         }
       } catch (error) { console.error(error); } finally { setLoading(false); }
@@ -73,6 +74,67 @@ const Profile = () => {
       if (error) throw error;
       toast({ title: "Berhasil", description: "Nama Anda telah diperbarui." });
     } catch (error) { toast({ variant: "destructive", description: error.message }); }
+    finally { setUpdating(false); }
+  };
+
+  // --- AKTIVASI OTP PONSEL ---
+  const handleRequestOTP = async () => {
+    setUpdating(true);
+    const fullPhone = selectedCountry.code + securityData.phone;
+    try {
+      const { error } = await supabase.auth.updateUser({ phone: fullPhone });
+      if (error) throw error;
+      setOtpSent(true);
+      toast({ title: "OTP Terkirim", description: "Periksa pesan ponsel Anda." });
+    } catch (error) { toast({ variant: "destructive", description: error.message }); }
+    finally { setUpdating(false); }
+  };
+
+  const handleVerifyOTP = async () => {
+    setUpdating(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        phone: selectedCountry.code + securityData.phone,
+        token: securityData.otpCode,
+        type: 'phone_change'
+      });
+      if (error) throw error;
+      setOtpSent(false);
+      toast({ title: "Sukses", description: "Nomor ponsel berhasil diverifikasi." });
+    } catch (error) { toast({ variant: "destructive", description: "Kode OTP salah." }); }
+    finally { setUpdating(false); }
+  };
+
+  // --- AKTIVASI GANTI PASSWORD ---
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (securityData.newPassword !== securityData.confirmPassword) {
+      return toast({ variant: "destructive", description: "Konfirmasi password tidak cocok!" });
+    }
+    setUpdating(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: securityData.newPassword });
+      if (error) throw error;
+      setSecurityData(prev => ({ ...prev, oldPassword: '', newPassword: '', confirmPassword: '' }));
+      toast({ title: "Berhasil", description: "Password diperbarui." });
+    } catch (error) { toast({ variant: "destructive", description: error.message }); }
+    finally { setUpdating(false); }
+  };
+
+  // --- AKTIVASI UNGGAH KYC ---
+  const handleKycUpload = async (event) => {
+    try {
+      setUpdating(true);
+      const file = event.target.files[0];
+      if (!file) return;
+      const filePath = `kyc/${user.id}/${Date.now()}`;
+      const { error: uploadError } = await supabase.storage.from('kyc-docs').upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('kyc-docs').getPublicUrl(filePath);
+      await supabase.from('profiles').update({ kyc_url: urlData.publicUrl }).eq('id', user.id);
+      setSecurityData(prev => ({ ...prev, kyc_url: urlData.publicUrl }));
+      toast({ title: "Berhasil", description: "Dokumen KTP telah terkirim." });
+    } catch (error) { toast({ variant: "destructive", description: "Gagal unggah KTP." }); }
     finally { setUpdating(false); }
   };
 
@@ -118,7 +180,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* --- 2. KARTU ISI KONTEN (TENGAH) --- */}
+        {/* --- 2. KARTU ISI KONTEN --- */}
         <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm min-h-[400px] mb-6">
           <AnimatePresence mode="wait">
             
@@ -138,6 +200,7 @@ const Profile = () => {
                   </div>
                   <Button onClick={handleUpdateName} disabled={updating} className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[11px] tracking-widest shadow-lg active:scale-95 transition-all">Update Nama</Button>
                 </div>
+
                 <div className="space-y-4 pt-4 border-t border-gray-50 relative">
                   <Label className="text-[11px] font-bold text-gray-400 uppercase ml-1">Nomor Ponsel</Label>
                   <div className="flex gap-2 items-center">
@@ -160,8 +223,16 @@ const Profile = () => {
                     </div>
                     <Input value={securityData.phone} onChange={(e) => setSecurityData({...securityData, phone: e.target.value})} className="h-12 rounded-xl border-gray-100 bg-white font-bold flex-1 placeholder:text-gray-200" placeholder="81..." />
                   </div>
-                  <Button className="w-full bg-white text-black border border-gray-100 rounded-xl h-11 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all">Kirim Kode Verifikasi (OTP)</Button>
+                  {otpSent ? (
+                    <div className="flex gap-2">
+                      <Input placeholder="Kode OTP" value={securityData.otpCode} onChange={(e) => setSecurityData({...securityData, otpCode: e.target.value})} className="h-12 rounded-xl border-2 border-black text-center font-black" />
+                      <Button onClick={handleVerifyOTP} className="bg-black text-white px-6 rounded-xl font-bold h-12">VERIFIKASI</Button>
+                    </div>
+                  ) : (
+                    <Button onClick={handleRequestOTP} disabled={updating} className="w-full bg-white text-black border border-gray-100 rounded-xl h-11 text-[10px] font-bold uppercase tracking-widest hover:bg-gray-50 active:scale-95 transition-all">Kirim Kode Verifikasi (OTP)</Button>
+                  )}
                 </div>
+
                 <div className="space-y-4 pt-4 border-t border-gray-50">
                   <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1">Ubah Kata Sandi</Label>
                   <div className="relative">
@@ -179,7 +250,7 @@ const Profile = () => {
                     <Input type={showConfirmPass ? "text" : "password"} placeholder="Konfirmasi Kata Sandi Baru" value={securityData.confirmPassword} onChange={(e) => setSecurityData({...securityData, confirmPassword: e.target.value})} className="h-12 pl-12 pr-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" />
                     <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-4 top-3.5 text-gray-400 hover:text-black">{showConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                   </div>
-                  <Button className="w-full bg-black text-white rounded-xl h-14 font-black text-[11px] tracking-[0.2em] uppercase mt-4 shadow-xl active:scale-95 transition-all">Ganti Kata Sandi</Button>
+                  <Button onClick={handleChangePassword} className="w-full bg-black text-white rounded-xl h-14 font-black text-[11px] tracking-[0.2em] uppercase mt-4 shadow-xl active:scale-95 transition-all">Ganti Kata Sandi</Button>
                 </div>
               </motion.div>
             )}
@@ -187,11 +258,18 @@ const Profile = () => {
             {activeTab === 'profil' && (
               <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                 <h3 className="text-lg font-black uppercase border-b border-gray-100 pb-4 italic tracking-tighter">Profil & KYC</h3>
-                <div className="p-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group shadow-sm active:scale-95 transition-all">
-                  <Upload className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
-                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic text-center transition-colors">Unggah KTP Sesuai Identitas</span>
+                <div className="relative p-12 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group shadow-sm active:scale-95 transition-all">
+                  {securityData.kyc_url ? (
+                    <div className="flex flex-col items-center"><CheckCircle2 className="text-green-500 mb-2" size={40} /><span className="text-[10px] font-black text-green-600 uppercase">KTP Berhasil Terkirim</span></div>
+                  ) : (
+                    <>
+                      <Upload className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
+                      <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic text-center">Unggah KTP Sesuai Identitas</span>
+                      <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleKycUpload} />
+                    </>
+                  )}
                 </div>
-                <Button className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Daftar Jadi Mitra</Button>
+                <Button onClick={() => navigate('/register-mitra')} className="w-full bg-black text-white rounded-xl h-12 font-bold uppercase text-[10px] tracking-widest shadow-lg active:scale-95 transition-all">Daftar Jadi Mitra</Button>
               </motion.div>
             )}
 
@@ -201,7 +279,7 @@ const Profile = () => {
           </AnimatePresence>
         </div>
 
-        {/* --- 3. KARTU MENU PENGATURAN (BAWAH) --- */}
+        {/* --- 3. MENU PENGATURAN --- */}
         <div className="bg-white rounded-[40px] p-6 border border-gray-100 shadow-sm mb-6">
           <div className="mb-6 px-2"><h2 className="text-2xl font-black italic uppercase tracking-tighter underline decoration-4 underline-offset-8 decoration-gray-50">Pengaturan</h2></div>
           <div className="grid grid-cols-1 gap-2">
@@ -219,20 +297,15 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* --- 4. TOMBOL LOGOUT TERPISAH (PALING BAWAH) --- */}
         <div className="pt-4">
-          <button 
-            onClick={handleLogout} 
-            className="w-full flex items-center justify-center gap-4 p-5 text-red-500 font-black uppercase italic tracking-widest bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-95 transition-all hover:bg-red-50"
-          >
-            <LogOut size={22} />
-            <span className="text-sm">Logout dari Akun</span>
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-4 p-5 text-red-500 font-black uppercase italic tracking-widest bg-white rounded-[24px] border border-gray-100 shadow-sm active:scale-95 transition-all hover:bg-red-50">
+            <LogOut size={22} /><span className="text-sm">Logout dari Akun</span>
           </button>
         </div>
-
       </div>
     </div>
   );
 };
 
 export default Profile;
+
