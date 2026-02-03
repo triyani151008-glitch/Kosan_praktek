@@ -13,10 +13,9 @@ const Home = () => {
   const [showBookingFlow, setShowBookingFlow] = useState(false);
   const [initialSearchData, setInitialSearchData] = useState(null);
   
-  // State untuk pencarian
+  // State untuk menangkap kata kunci dari Hero
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authInitialView, setAuthInitialView] = useState('login');
 
@@ -39,12 +38,12 @@ const Home = () => {
     <div className="min-h-screen bg-white pb-20 md:pb-0">
       <Header onLoginClick={() => openAuthModal('login')} onSignupClick={() => openAuthModal('signup')} />
       
-      {/* Hero sekarang menerima fungsi onSearch */}
+      {/* Hero mengirimkan query ke state searchQuery */}
       <Hero onSearch={(query) => setSearchQuery(query)} />
       
       <PopularCities />
       
-      {/* FeaturedProperties menerima searchQuery untuk filter */}
+      {/* FeaturedProperties melakukan filter berdasarkan searchQuery */}
       <FeaturedProperties 
         searchQuery={searchQuery} 
         onBookNow={handleStartBooking} 
@@ -52,22 +51,13 @@ const Home = () => {
       
       <Testimonials />
       <Footer />
-      <BottomNav 
-        onAccountClick={() => openAuthModal('login')} 
-      />
+      <BottomNav onAccountClick={() => openAuthModal('login')} />
       
       {showBookingFlow && (
-        <BookingFlow 
-          initialData={initialSearchData}
-          onClose={handleCloseBooking}
-        />
+        <BookingFlow initialData={initialSearchData} onClose={handleCloseBooking} />
       )}
       
-      <AuthModal 
-        isOpen={authModalOpen} 
-        onClose={() => setAuthModalOpen(false)} 
-        initialView={authInitialView} 
-      />
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} initialView={authInitialView} />
     </div>
   );
 };
