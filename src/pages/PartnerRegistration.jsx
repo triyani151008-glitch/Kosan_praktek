@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronLeft, Home, MapPin, Camera, Loader2, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, Home, MapPin, Camera, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,68 +14,97 @@ const PartnerRegistration = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  
+  // State untuk data form
   const [formData, setFormData] = useState({
     kosName: '',
     address: '',
-    photo_url: '',
   });
 
-  const handlePhotoUpload = async (event) => {
-    try {
-      setLoading(true);
-      const file = event.target.files[0];
-      if (!file) return;
+  // State baru untuk penanganan file lokal (sebelum upload)
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-      const filePath = `properties/${user.id}/${Date.now()}`;
-      
-      // Mengunggah ke bucket 'property-images'
+  // Membersihkan memori pratinjau saat komponen ditutup
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  // 1. Logika Pilih File & Ganti Foto (Hanya di HP/Browser User)
+  const handleFileChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    if (!file.type.startsWith('image/')) {
+      return toast({ variant: "destructive", description: "Format file harus gambar." });
+    }
+
+    // Buat pratinjau lokal agar user bisa lihat sebelum kirim
+    const localUrl = URL.createObjectURL(file);
+    setSelectedFile(file);
+    setPreviewUrl(localUrl);
+    
+    toast({ title: "Foto Terpilih", description: "Anda bisa menggantinya jika salah pilih sebelum menekan tombol Kirim." });
+  };
+
+  // 2. Logika Utama: Unggah & Daftar (Saat Tombol Klik)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedFile) {
+      return toast({ variant: "destructive", description: "Harap pilih foto properti terlebih dahulu." });
+    }
+
+    setLoading(true);
+    try {
+      // A. PROSES UNGGAH KE BUCKET (Baru dijalankan di sini)
+      const filePath = `properties/${user.id}/${Date.now()}_${selectedFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from('property-images')
-        .upload(filePath, file);
+        .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
+      // B. AMBIL URL PUBLIK
       const { data: urlData } = supabase.storage
         .from('property-images')
         .getPublicUrl(filePath);
 
-      setFormData(prev => ({ ...prev, photo_url: urlData.publicUrl }));
-      toast({ title: "Berhasil!", description: "Foto properti tersimpan." });
-    } catch (error) { 
-      toast({ variant: "destructive", title: "Gagal unggah foto!", description: "Cek apakah bucket 'property-images' sudah Public." }); 
-    } finally { setLoading(false); }
-  };
+      const finalPhotoUrl = urlData.publicUrl;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.photo_url) return toast({ variant: "destructive", description: "Harap unggah foto properti dahulu." });
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
+      // C. SIMPAN DATA KE DATABASE PROFIL
+      const { error: dbError } = await supabase
         .from('profiles')
         .update({ 
           is_mitra: true, 
           role: 'mitra',
           first_name: formData.kosName,
-          property_photo_url: formData.photo_url 
+          property_photo_url: finalPhotoUrl 
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (dbError) throw dbError;
 
-      toast({ title: "Pendaftaran Berhasil!", description: "Selamat datang di kemitraan Kosan." });
+      toast({ title: "Pendaftaran Berhasil!", description: "Data Anda dan foto properti telah resmi tersimpan." });
       navigate('/profile');
     } catch (error) {
-      toast({ variant: "destructive", title: "Gagal Mendaftar", description: error.message });
-    } finally { setLoading(false); }
+      console.error(error);
+      toast({ variant: "destructive", title: "Gagal Mengirim", description: error.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-10">
       <div className="bg-white border-b border-gray-100 sticky top-0 z-50 px-4 py-4">
         <div className="container mx-auto max-w-2xl flex items-center gap-4">
-          <button onClick={() => navigate('/profile')} className="p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-90"><ChevronLeft size={24} /></button>
+          <button onClick={() => navigate('/profile')} className="p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-90">
+            <ChevronLeft size={24} />
+          </button>
           <h1 className="text-lg font-black uppercase italic tracking-tighter">Pendaftaran Mitra Pemilik</h1>
         </div>
       </div>
@@ -105,16 +134,29 @@ const PartnerRegistration = () => {
               </div>
             </div>
 
-            <div className="relative p-10 border-2 border-dashed border-gray-100 rounded-[32px] flex flex-col items-center justify-center bg-gray-50 hover:bg-white transition-all cursor-pointer group">
-              {formData.photo_url ? (
-                <div className="flex flex-col items-center"><CheckCircle2 className="text-green-500 mb-2" size={32} /><span className="text-[10px] font-black text-green-600 uppercase italic">Foto Berhasil Diunggah</span></div>
+            {/* Area Pilih & Ganti Foto (Hanya di Browser User) */}
+            <div className="relative p-1 border-2 border-dashed border-gray-100 rounded-[32px] overflow-hidden bg-gray-50 hover:bg-white transition-all group min-h-[160px] flex items-center justify-center">
+              {previewUrl ? (
+                <div className="relative w-full h-full p-2 flex flex-col items-center">
+                  <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-2xl mb-2 grayscale group-hover:grayscale-0 transition-all" />
+                  <div className="flex items-center gap-2 bg-black/5 px-4 py-1.5 rounded-full">
+                    <RefreshCw size={12} className="text-gray-500" />
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest italic">Ketuk gambar untuk mengganti foto</span>
+                  </div>
+                </div>
               ) : (
-                <>
+                <div className="flex flex-col items-center py-10 pointer-events-none">
                   <Camera className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
-                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic">Unggah Foto Properti</span>
-                  <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handlePhotoUpload} disabled={loading} />
-                </>
+                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic">Pilih Foto Properti</span>
+                </div>
               )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+                onChange={handleFileChange} 
+                disabled={loading} 
+              />
             </div>
 
             <Button type="submit" disabled={loading} className="w-full bg-black text-white rounded-xl h-14 font-black text-[12px] tracking-[0.2em] uppercase mt-4 shadow-xl active:scale-95 transition-all">
