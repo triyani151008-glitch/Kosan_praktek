@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Wallet, DoorOpen, Plus, Camera, Loader2, 
-  ChevronLeft, Trash2, Check, X,
-  Key, Image as ImageIcon, Smartphone, Info
+  ChevronLeft, Trash2, Check, X, Key, Info, 
+  Banknote, Landmark, Smartphone 
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
@@ -18,149 +18,181 @@ const DashboardMitra = () => {
   const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   
   // Data State
   const [property, setProperty] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [wallet, setWallet] = useState({ balance: 0 });
 
-  useEffect(() => {
-    if (user) fetchData();
-  }, [user]);
+  // Modal States
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [showPayout, setShowPayout] = useState(false);
+
+  // Form States
+  const [roomForm, setRoomForm] = useState({ number: '', ttlock: '' });
+  const [payoutForm, setPayoutForm] = useState({ amount: '', bank: '', accNo: '', name: '' });
+
+  useEffect(() => { if (user) fetchData(); }, [user]);
 
   const fetchData = async () => {
     try {
-      // 1. Ambil Properti Utama
       const { data: propData } = await supabase.from('properties').select('*').eq('owner_id', user.id).single();
-      if (propData) setProperty(propData);
-
-      // 2. Ambil Daftar Kamar (Multi-Pintu)
-      const { data: roomsData } = await supabase.from('rooms').select('*').eq('property_id', propData?.id);
-      setRooms(roomsData || []);
-
-      // 3. Ambil Saldo Wallet
-      const { data: walData } = await supabase.from('wallets').select('balance').eq('owner_id', user.id).single();
-      if (walData) setWallet(walData);
+      if (propData) {
+        setProperty(propData);
+        const { data: rm } = await supabase.from('rooms').select('*').eq('property_id', propData.id);
+        setRooms(rm || []);
+      }
+      const { data: wal } = await supabase.from('wallets').select('balance').eq('owner_id', user.id).single();
+      if (wal) setWallet(wal);
     } catch (error) { console.error(error); } 
     finally { setLoading(false); }
   };
 
-  // --- LOGIKA UNGGAH FOTO FASILITAS KAMAR ---
-  const handleRoomPhotoUpload = async (roomId, event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setSaving(true);
+  // --- FUNGSI TAMBAH KAMAR BARU (Poin B.2) ---
+  const handleAddRoom = async () => {
+    if (!roomForm.number) return;
+    setActionLoading(true);
     try {
-      const filePath = `room-facilities/${roomId}/${Date.now()}`;
-      const { error: uploadError } = await supabase.storage.from('property-images').upload(filePath, file);
-      if (uploadError) throw uploadError;
+      const { error } = await supabase.from('rooms').insert({
+        property_id: property.id,
+        room_number: roomForm.number,
+        ttlock_id: roomForm.ttlock,
+        room_photos: []
+      });
+      if (error) throw error;
+      toast({ title: "Kamar Ditambahkan", description: `Pintu ${roomForm.number} siap dikelola.` });
+      setShowAddRoom(false);
+      fetchData();
+    } catch (error) { toast({ variant: "destructive", description: error.message }); }
+    finally { setActionLoading(false); }
+  };
 
-      const { data: urlData } = supabase.storage.from('property-images').getPublicUrl(filePath);
-      const newUrl = urlData.publicUrl;
-
-      // Update Array Foto di Database
-      const currentRoom = rooms.find(r => r.id === roomId);
-      const updatedPhotos = [...(currentRoom.room_photos || []), newUrl];
-
-      await supabase.from('rooms').update({ room_photos: updatedPhotos }).eq('id', roomId);
-      
-      fetchData(); // Refresh data
-      toast({ title: "Foto Berhasil!", description: "Fasilitas kamar telah ditambahkan." });
-    } catch (error) { toast({ variant: "destructive", description: "Gagal unggah foto." }); }
-    finally { setSaving(false); }
+  // --- FUNGSI TARIK DANA (Poin B.Wallet) ---
+  const handleRequestPayout = async () => {
+    if (parseInt(payoutForm.amount) > wallet.balance) return toast({ variant: "destructive", description: "Saldo tidak mencukupi." });
+    setActionLoading(true);
+    try {
+      const { error } = await supabase.from('payout_requests').insert({
+        owner_id: user.id,
+        amount: payoutForm.amount,
+        bank_name: payoutForm.bank,
+        account_number: payoutForm.accNo,
+        account_holder: payoutForm.name
+      });
+      if (error) throw error;
+      toast({ title: "Permintaan Terkirim", description: "Admin akan memproses pencairan Anda." });
+      setShowPayout(false);
+    } catch (error) { toast({ variant: "destructive", description: error.message }); }
+    finally { setActionLoading(false); }
   };
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-24">
-      {/* HEADER KEUANGAN (Wallet System) */}
-      <div className="bg-black text-white p-8 rounded-b-[40px] shadow-2xl">
-        <div className="max-w-2xl mx-auto flex justify-between items-center">
-          <div onClick={() => navigate('/profile')} className="cursor-pointer">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 italic">Saldo Dompet Aktif</p>
-            <h2 className="text-3xl font-black italic tracking-tighter">Rp {wallet.balance.toLocaleString()}</h2>
+      {/* Wallet Header */}
+      <div className="bg-black text-white p-10 rounded-b-[50px] shadow-2xl relative overflow-hidden">
+        <div className="max-w-2xl mx-auto flex justify-between items-center relative z-10">
+          <div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 italic">Saldo Dompet Mitra</p>
+            <h2 className="text-4xl font-black italic tracking-tighter">Rp {wallet.balance.toLocaleString()}</h2>
           </div>
-          <Button className="rounded-xl border-white/20 bg-white/10 hover:bg-white hover:text-black text-[9px] font-black uppercase tracking-widest italic h-10 px-6">Payout</Button>
+          <Button onClick={() => setShowPayout(true)} className="rounded-2xl bg-white text-black text-[10px] font-black uppercase tracking-widest italic h-12 px-8 hover:bg-gray-200 transition-all">Tarik Dana</Button>
         </div>
+        <Wallet className="absolute -bottom-10 -right-10 text-white/5" size={200} />
       </div>
 
-      <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-8">
-        
-        {/* INFO OPERASIONAL LOKASI */}
-        <div className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center"><Info size={20} /></div>
+      <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-6">
+        {/* Tombol Kelola Pintu */}
+        <div className="flex justify-between items-center px-2">
+            <h3 className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2"><DoorOpen size={18} /> Kelola Pintu (Rooms)</h3>
+            <Button onClick={() => setShowAddRoom(true)} variant="outline" className="h-10 rounded-xl border-black/10 text-[10px] font-black uppercase italic"><Plus size={16} className="mr-2" /> Tambah Kamar</Button>
+        </div>
+
+        {/* List Kamar (Multi-Door Logic) */}
+        <div className="grid grid-cols-1 gap-4">
+          {rooms.map((room) => (
+            <div key={room.id} className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm group">
+              <div className="flex justify-between items-center">
                 <div>
-                    <h4 className="text-xs font-black uppercase italic tracking-tight">{property?.name}</h4>
-                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Penjaga: {property?.guard_phone || '-'}</p>
+                  <h5 className="text-xl font-black italic uppercase leading-none">Pintu {room.room_number}</h5>
+                  <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest flex items-center gap-1">
+                    <Key size={10} /> TTLock ID: {room.ttlock_id || 'Belum Diatur'}
+                  </p>
                 </div>
-            </div>
-            <Button variant="ghost" size="icon" className="rounded-xl"><Settings2 size={20} /></Button>
-        </div>
-
-        {/* --- DAFTAR KAMAR (MULTI-PINTU TTLOCK) --- */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2"><DoorOpen size={18} /> Kelola Pintu Kamar</h3>
-            <Button variant="outline" className="h-8 rounded-lg text-[9px] font-black uppercase italic border-black/10"><Plus size={14} className="mr-1" /> Tambah Pintu</Button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            {rooms.map((room) => (
-              <div key={room.id} className="bg-white rounded-[32px] p-6 border border-gray-100 shadow-sm overflow-hidden group">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h5 className="text-xl font-black italic uppercase leading-none">Kamar {room.room_number}</h5>
-                    <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-widest flex items-center gap-1">
-                      <Key size={10} className="text-black" /> TTLock ID: {room.ttlock_id || 'Not Set'}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest italic border border-gray-100">
-                    {room.status}
-                  </div>
-                </div>
-
-                {/* --- MENU FOTO FASILITAS (Multi-Photo) --- */}
-                <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-3 italic">Galeri Fasilitas Kamar</p>
-                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide">
-                  {room.room_photos?.map((url, i) => (
-                    <div key={i} className="relative shrink-0">
-                        <img src={url} className="w-24 h-24 rounded-2xl object-cover grayscale group-hover:grayscale-0 transition-all duration-500 border border-gray-100" />
-                        <button className="absolute -top-1 -right-1 bg-red-500 text-white p-1 rounded-lg shadow-lg"><X size={10} /></button>
-                    </div>
-                  ))}
-                  
-                  {/* Tombol Unggah Baru */}
-                  <label className="w-24 h-24 shrink-0 rounded-2xl bg-gray-50 border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-300 hover:border-black hover:text-black transition-all cursor-pointer">
-                    {saving ? <Loader2 className="animate-spin" size={16} /> : <><Camera size={20} /><span className="text-[8px] font-black uppercase mt-1">Add Photo</span></>}
-                    <input type="file" className="hidden" onChange={(e) => handleRoomPhotoUpload(room.id, e)} disabled={saving} />
-                  </label>
-                </div>
-
-                {/* TARIF PER KAMAR */}
-                <div className="grid grid-cols-3 gap-2 mt-4 pt-6 border-t border-gray-50">
-                    <div className="text-center">
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Transit (Jam)</p>
-                        <p className="text-[10px] font-black italic">Aktif</p>
-                    </div>
-                    <div className="text-center border-x border-gray-50">
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Harian</p>
-                        <p className="text-[10px] font-black italic">Aktif</p>
-                    </div>
-                    <div className="text-center">
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Bulanan</p>
-                        <p className="text-[10px] font-black italic">Nonaktif</p>
-                    </div>
-                </div>
+                <Button variant="ghost" size="icon" className="rounded-xl hover:bg-red-50 text-red-400 hover:text-red-600"><Trash2 size={18} /></Button>
               </div>
-            ))}
+              {/* Fitur Foto & Tarif Per Kamar bisa disisipkan di sini seperti kode sebelumnya */}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* --- MODAL TAMBAH KAMAR --- */}
+      {showAddRoom && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black uppercase italic tracking-tighter">Unit Kamar Baru</h3>
+                <button onClick={() => setShowAddRoom(false)} className="p-2 bg-gray-50 rounded-xl"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-gray-400">Nomor Kamar / Pintu</Label>
+                    <Input placeholder="Contoh: A01" className="h-12 rounded-xl border-gray-100 font-bold" value={roomForm.number} onChange={(e) => setRoomForm({...roomForm, number: e.target.value})} />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-gray-400">TTLock ID (Opsional)</Label>
+                    <Input placeholder="Masukkan ID dari TTLock App" className="h-12 rounded-xl border-gray-100 font-mono" value={roomForm.ttlock} onChange={(e) => setRoomForm({...roomForm, ttlock: e.target.value})} />
+                </div>
+                <Button onClick={handleAddRoom} disabled={actionLoading} className="w-full bg-black text-white h-14 rounded-2xl font-black uppercase text-xs tracking-widest mt-4">
+                    {actionLoading ? <Loader2 className="animate-spin" /> : 'Simpan Pintu'}
+                </Button>
+            </div>
           </div>
         </div>
+      )}
 
-      </div>
+      {/* --- MODAL TARIK DANA --- */}
+      {showPayout && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-black uppercase italic tracking-tighter">Pencairan Saldo</h3>
+                <button onClick={() => setShowPayout(false)} className="p-2 bg-gray-50 rounded-xl"><X size={20} /></button>
+            </div>
+            <div className="space-y-4">
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase text-gray-400 tracking-widest">Saldo Tersedia</span>
+                    <span className="font-black italic">Rp {wallet.balance.toLocaleString()}</span>
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-gray-400">Jumlah Penarikan (Rp)</Label>
+                    <Input type="number" placeholder="Min Rp 50.000" className="h-12 rounded-xl border-gray-100 font-black italic" value={payoutForm.amount} onChange={(e) => setPayoutForm({...payoutForm, amount: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase text-gray-400">Nama Bank</Label>
+                        <Input placeholder="BCA/Mandiri..." className="h-12 rounded-xl border-gray-100 text-xs font-bold" value={payoutForm.bank} onChange={(e) => setPayoutForm({...payoutForm, bank: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase text-gray-400">No. Rekening</Label>
+                        <Input placeholder="0001..." className="h-12 rounded-xl border-gray-100 text-xs font-bold" value={payoutForm.accNo} onChange={(e) => setPayoutForm({...payoutForm, accNo: e.target.value})} />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase text-gray-400">Atas Nama Rekening</Label>
+                    <Input placeholder="Sesuai Buku Tabungan" className="h-12 rounded-xl border-gray-100 text-xs font-bold" value={payoutForm.name} onChange={(e) => setPayoutForm({...payoutForm, name: e.target.value})} />
+                </div>
+                <Button onClick={handleRequestPayout} disabled={actionLoading} className="w-full bg-black text-white h-14 rounded-2xl font-black uppercase text-xs tracking-widest mt-4">
+                    {actionLoading ? <Loader2 className="animate-spin" /> : 'Kirim Permintaan'}
+                </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
