@@ -1,141 +1,195 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  Home, Users, Wallet, settings, 
-  PlusCircle, ChevronLeft, Loader2, 
-  MapPin, Bed, ArrowUpRight, TrendingUp,
-  Image as ImageIcon, MoreVertical
+  Home, Clock, Calendar, Camera, Loader2, 
+  ChevronLeft, Save, Trash2, Check, X,
+  ArrowRight, Image as ImageIcon, Plus
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
 import { useAuth } from '@/contexts/SupabaseAuthContext';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/use-toast';
 
 const DashboardMitra = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
+  
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeType, setActiveType] = useState('monthly'); // 'hourly' or 'monthly'
+  
   const [property, setProperty] = useState(null);
+  const [pricing, setPricing] = useState(null);
+  const [newPhoto, setNewPhoto] = useState(null);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   useEffect(() => {
-    const fetchPropertyData = async () => {
-      try {
-        if (!user) return;
-        // Mengambil data mitra dari tabel profiles
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('first_name, property_photo_url, is_mitra')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setProperty(data);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchPropertyData();
+    fetchData();
   }, [user]);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-black" /></div>;
+  const fetchData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', user.id)
+        .single();
+      
+      if (error) throw error;
+      setProperty(data);
+      setPricing(data.pricing_options);
+      setPreviewPhoto(data.photo_url);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- LOGIKA EDIT TARIF ---
+  const toggleRate = (type, unit) => {
+    setPricing({
+      ...pricing,
+      [type]: {
+        ...pricing[type],
+        [unit]: { ...pricing[type][unit], active: !pricing[type][unit].active }
+      }
+    });
+  };
+
+  const updatePriceValue = (type, unit, value) => {
+    setPricing({
+      ...pricing,
+      [type]: {
+        ...pricing[type],
+        [unit]: { ...pricing[type][unit], price: parseInt(value) || 0 }
+      }
+    });
+  };
+
+  // --- LOGIKA GANTI FOTO ---
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewPhoto(file);
+      setPreviewPhoto(URL.createObjectURL(file));
+    }
+  };
+
+  // --- LOGIKA SIMPAN PERUBAHAN ---
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      let finalUrl = property.photo_url;
+
+      // 1. Jika ada foto baru, unggah ke bucket property-images
+      if (newPhoto) {
+        const filePath = `properties/${user.id}/${Date.now()}`;
+        await supabase.storage.from('property-images').upload(filePath, newPhoto);
+        const { data: url } = supabase.storage.from('property-images').getPublicUrl(filePath);
+        finalUrl = url.publicUrl;
+      }
+
+      // 2. Update tabel properties
+      const { error } = await supabase
+        .from('properties')
+        .update({
+          photo_url: finalUrl,
+          pricing_options: pricing
+        })
+        .eq('owner_id', user.id);
+
+      if (error) throw error;
+      toast({ title: "Berhasil Disimpan", description: "Tarif dan foto kosan telah diperbarui." });
+    } catch (error) {
+      toast({ variant: "destructive", description: error.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-20">
-      
-      {/* --- HEADER NAVIGASI --- */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-50 px-4 py-4">
+    <div className="min-h-screen bg-[#F9F9F9] text-[#1A1A1A] pb-24">
+      {/* Header Statis */}
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-50 px-6 py-5">
         <div className="container mx-auto max-w-2xl flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/profile')} className="p-2 hover:bg-gray-50 rounded-xl transition-all active:scale-90">
+            <button onClick={() => navigate('/profile')} className="p-2 hover:bg-gray-50 rounded-xl transition-all">
               <ChevronLeft size={24} />
             </button>
-            <h1 className="text-lg font-black uppercase italic tracking-tighter">Dashboard Pemilik</h1>
+            <h1 className="text-lg font-black uppercase italic tracking-tighter">Edit Properti</h1>
           </div>
-          <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-white font-black italic text-xs shadow-lg">
-            {property?.first_name?.[0].toUpperCase() || 'M'}
-          </div>
+          <Button onClick={handleSaveChanges} disabled={saving} className="bg-black text-white h-10 px-6 rounded-xl font-black text-[10px] tracking-widest uppercase">
+            {saving ? <Loader2 className="animate-spin w-4 h-4" /> : 'Simpan'}
+          </Button>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-6">
+      <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-8">
         
-        {/* --- RINGKASAN PROPERTI --- */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[40px] p-6 border border-gray-100 shadow-sm overflow-hidden relative">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nama Properti Anda</p>
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{property?.first_name || 'Kosan Anda'}</h2>
-            </div>
-            <button className="p-2 text-gray-300 hover:text-black"><MoreVertical size={20} /></button>
-          </div>
-
-          {/* Menampilkan Foto Properti yang diunggah */}
-          <div className="w-full h-48 rounded-[32px] overflow-hidden bg-gray-100 mb-6 group relative">
-            {property?.property_photo_url ? (
-              <img src={property.property_photo_url} alt="Properti" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100" />
+        {/* SECTION 1: MANAJEMEN FOTO */}
+        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 italic">Visual Utama Kosan</p>
+          <div className="relative aspect-video rounded-[32px] overflow-hidden bg-gray-50 border-2 border-dashed border-gray-100 group">
+            {previewUrl || previewPhoto ? (
+              <img src={previewPhoto} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-300 italic">
-                <ImageIcon size={40} strokeWidth={1} />
-                <span className="text-[10px] font-bold mt-2 uppercase tracking-widest">Belum Ada Foto</span>
-              </div>
+              <div className="flex flex-col items-center justify-center h-full text-gray-200 italic"><ImageIcon size={48} /></div>
             )}
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-white font-black text-[10px] uppercase tracking-widest italic">
+              <Camera className="mr-2" size={20} /> Ganti Foto
+              <input type="file" className="hidden" onChange={handlePhotoChange} />
+            </label>
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 bg-gray-50 rounded-3xl border border-gray-100">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Kamar</p>
-              <div className="flex items-end justify-between">
-                <span className="text-2xl font-black italic">0</span>
-                <Bed size={16} className="text-gray-300 mb-1" />
-              </div>
-            </div>
-            <div className="p-4 bg-black text-white rounded-3xl shadow-xl shadow-gray-200">
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2">Penghuni Aktif</p>
-              <div className="flex items-end justify-between">
-                <span className="text-2xl font-black italic">0</span>
-                <Users size={16} className="text-gray-500 mb-1" />
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* --- MENU MANAJEMEN --- */}
-        <div className="grid grid-cols-1 gap-3">
-          <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 ml-4 mb-1 italic">Kelola Bisnis</h3>
-          
-          <button className="w-full flex items-center justify-between p-6 bg-white rounded-[28px] border border-gray-100 hover:border-black transition-all group active:scale-95 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
-                <PlusCircle size={20} />
-              </div>
-              <div className="text-left">
-                <span className="block text-sm font-black uppercase italic tracking-tighter leading-none">Tambah Kamar Baru</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Input Unit Properti Anda</span>
-              </div>
-            </div>
-            <ArrowUpRight size={18} className="text-gray-200 group-hover:text-black" />
-          </button>
-
-          <button className="w-full flex items-center justify-between p-6 bg-white rounded-[28px] border border-gray-100 hover:border-black transition-all group active:scale-95 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
-                <Wallet size={20} />
-              </div>
-              <div className="text-left">
-                <span className="block text-sm font-black uppercase italic tracking-tighter leading-none">Laporan Keuangan</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1">Pantau Pendapatan Bulanan</span>
-              </div>
-            </div>
-            <TrendingUp size={18} className="text-gray-200 group-hover:text-black" />
-          </button>
         </div>
 
-        {/* --- TICKET/PESANAN TERBARU (PLACEHOLDER) --- */}
-        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm text-center py-20 opacity-50">
-           <Home size={32} className="mx-auto text-gray-100 mb-4" />
-           <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">Belum Ada Pesanan Kamar Masuk</p>
+        {/* SECTION 2: MANAJEMEN TARIF */}
+        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-xl font-black uppercase italic tracking-tighter">Pengaturan Tarif</h3>
+            <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+              <button onClick={() => setActiveType('hourly')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeType === 'hourly' ? 'bg-black text-white shadow-lg' : 'text-gray-400'}`}>Per Jam</button>
+              <button onClick={() => setActiveType('monthly')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeType === 'monthly' ? 'bg-black text-white shadow-lg' : 'text-gray-400'}`}>Per Bulan</button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {Object.keys(pricing[activeType]).map((unit) => (
+              <div key={unit} className={`flex items-center justify-between p-5 rounded-3xl border transition-all ${pricing[activeType][unit].active ? 'bg-white border-gray-200 shadow-md translate-x-1' : 'bg-gray-50/50 border-gray-50 opacity-60 grayscale'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${pricing[activeType][unit].active ? 'bg-black text-white' : 'bg-gray-200 text-gray-400'}`}>
+                    {activeType === 'hourly' ? <Clock size={18} /> : <Calendar size={18} />}
+                  </div>
+                  <div>
+                    <span className="block text-sm font-black uppercase italic tracking-tighter leading-none">{unit} {activeType === 'hourly' ? 'Jam' : 'Bulan'}</span>
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">{pricing[activeType][unit].active ? 'Status: Aktif' : 'Status: Nonaktif'}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {pricing[activeType][unit].active && (
+                    <div className="relative w-28">
+                      <span className="absolute left-3 top-3.5 text-[10px] font-black text-gray-300">RP</span>
+                      <Input 
+                        type="number" 
+                        value={pricing[activeType][unit].price} 
+                        onChange={(e) => updatePriceValue(activeType, unit, e.target.value)}
+                        className="h-11 pl-8 rounded-xl border-gray-100 font-black text-xs bg-white text-right"
+                      />
+                    </div>
+                  )}
+                  <button onClick={() => toggleRate(activeType, unit)} className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${pricing[activeType][unit].active ? 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white'}`}>
+                    {pricing[activeType][unit].active ? <X size={20} /> : <Check size={20} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
       </div>
