@@ -18,7 +18,7 @@ const DashboardMitra = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [activeTab, setActiveTab] = useState('hourly'); // 'hourly' atau 'monthly'
+  const [activeTab, setActiveTab] = useState('hourly'); // 'hourly' (Jam) atau 'monthly' (Bulan)
   
   const [rooms, setRooms] = useState([]);
   const [wallet, setWallet] = useState({ balance: 0 });
@@ -46,7 +46,7 @@ const DashboardMitra = () => {
         room_photos: selectedRoom.room_photos
       }).eq('id', selectedRoom.id);
       if (error) throw error;
-      toast({ title: "Tersimpan!", description: "Pengaturan tarif berhasil diperbarui." });
+      toast({ title: "Berhasil!", description: "Aturan tarif telah diperbarui." });
       setSelectedRoom(null);
       fetchData();
     } catch (error) { toast({ variant: "destructive", description: error.message }); }
@@ -71,14 +71,19 @@ const DashboardMitra = () => {
       <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-6">
         <div className="bg-white rounded-[40px] p-8 border shadow-sm space-y-6">
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2"><Clock size={18} /> Menu Atur Tarif</h3>
+            <h3 className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2"><Clock size={18} /> Atur Durasi & Tarif</h3>
             <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-               <button onClick={() => setActiveTab('hourly')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'hourly' ? 'bg-black text-white shadow-md' : 'text-gray-400'}`}>Transit (Jam)</button>
-               <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'monthly' ? 'bg-black text-white shadow-md' : 'text-gray-400'}`}>Bulanan</button>
+               <button onClick={() => setActiveTab('hourly')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'hourly' ? 'bg-black text-white shadow-md' : 'text-gray-400'}`}>
+                  Transit (Jam)
+               </button>
+               <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'monthly' ? 'bg-black text-white shadow-md' : 'text-gray-400'}`}>
+                  Bulanan
+               </button>
             </div>
           </div>
 
           <div className="space-y-3">
+            {/* Logic Loop Durasi (Poin B: Pricing Matrix) */}
             {selectedRoom.pricing_plan[activeTab] && Object.keys(selectedRoom.pricing_plan[activeTab])
               .sort((a,b) => parseInt(a) - parseInt(b))
               .map((unit) => (
@@ -108,7 +113,7 @@ const DashboardMitra = () => {
                       />
                     </div>
                   )}
-                  {/* TOMBOL ON/OFF */}
+                  {/* Tombol ON/OFF Per Durasi */}
                   <button onClick={() => {
                       const updated = { ...selectedRoom.pricing_plan };
                       updated[activeTab][unit].active = !updated[activeTab][unit].active;
@@ -127,9 +132,10 @@ const DashboardMitra = () => {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] pb-24">
+      {/* Wallet Header */}
       <div className="bg-black text-white p-10 rounded-b-[50px] shadow-2xl relative overflow-hidden">
         <div className="max-w-2xl mx-auto flex justify-between items-center relative z-10">
-          <div><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest italic">Total Saldo</p><h2 className="text-4xl font-black italic tracking-tighter">Rp {wallet.balance.toLocaleString()}</h2></div>
+          <div><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest italic">Saldo Aktif</p><h2 className="text-4xl font-black italic tracking-tighter">Rp {wallet.balance.toLocaleString()}</h2></div>
           <Button className="rounded-2xl bg-white text-black h-12 px-8 font-black uppercase text-[10px] tracking-widest active:scale-95 transition-all">Tarik Dana</Button>
         </div>
         <Wallet className="absolute -bottom-10 -right-10 text-white/5" size={220} />
@@ -138,7 +144,7 @@ const DashboardMitra = () => {
       <div className="container mx-auto px-4 max-w-2xl mt-8 space-y-4">
         <div className="grid grid-cols-1 gap-4">
           {rooms.map((room) => (
-            <button key={room.id} onClick={() => setSelectedRoom(room)} className="bg-white rounded-[32px] p-7 border shadow-sm hover:border-black transition-all text-left active:scale-95">
+            <button key={room.id} onClick={() => setSelectedRoom(room)} className="bg-white rounded-[32px] p-7 border shadow-sm hover:border-black transition-all text-left group active:scale-95 transition-all">
               <div className="flex justify-between items-center">
                 <div><h5 className="text-xl font-black italic uppercase leading-none mb-2">PINTU {room.room_number}</h5><p className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Key size={12} className="text-black" /> TTLock ID: <span className="text-black">{room.ttlock_id || '-'}</span></p></div>
                 <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 group-hover:bg-black group-hover:text-white transition-all"><Settings2 size={20} /></div>
