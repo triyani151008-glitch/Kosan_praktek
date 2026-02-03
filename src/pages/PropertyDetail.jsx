@@ -1,123 +1,124 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Clock, Calendar, ShieldCheck, MapPin, Loader2, Zap } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
-import { ArrowLeft, MapPin, Star, Wifi, Wind, Tv, Coffee, Share2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
-const amenityIcons = {
-  'WiFi': Wifi, 'AC': Wind, 'TV': Tv, 'Dapur': Coffee,
-  'Parkir': MapPin, 'Laundry': Coffee, 'Security': MapPin
-};
-
 const PropertyDetail = () => {
-  const { id } = useParams(); // Menangkap ID dari URL
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
+
+  // State Pilihan Booking (Poin 2A)
+  const [selectedTab, setSelectedTab] = useState('hourly'); // hourly, daily, monthly
+  const [selectedDuration, setSelectedDuration] = useState(null);
 
   useEffect(() => {
     const fetchDetail = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (error) throw error;
-        setProperty(data);
-      } catch (error) {
-        console.error("Error:", error);
-        toast({ title: "Gagal", description: "Properti tidak ditemukan", variant: "destructive" });
-        navigate('/');
-      } finally {
-        setLoading(false);
-      }
+      const { data } = await supabase.from('properties').select('*').eq('id', id).single();
+      if (data) setProperty(data);
+      setLoading(false);
     };
-
     fetchDetail();
-  }, [id, navigate, toast]);
+  }, [id]);
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+  const handleBooking = async () => {
+    if (!selectedDuration) return toast({ variant: "destructive", description: "Pilih durasi sewa." });
+    
+    setBookingLoading(true);
+    try {
+      // Logika Transaksi & IoT Akan Disisipkan di Sini (Poin 3B & 3D)
+      toast({ title: "Booking Diproses", description: "Menghubungkan ke sistem pembayaran..." });
+      // navigate('/payment'); 
+    } catch (error) {
+      toast({ variant: "destructive", description: error.message });
+    } finally { setBookingLoading(false); }
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
-  if (!property) return null;
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+
+  const pricing = property?.pricing_plan || {};
 
   return (
-    <div className="bg-white min-h-screen pb-24 relative">
-      {/* Header Gambar */}
-      <div className="relative h-[40vh] md:h-[50vh]">
-        <img 
-          src={property.image_url || "https://images.unsplash.com/photo-1595872018818-97555653a011"} 
-          alt={property.name} 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute top-4 left-4 z-10">
-          <button onClick={() => navigate(-1)} className="bg-white/80 backdrop-blur-sm p-2 rounded-full shadow hover:bg-white transition">
-            <ArrowLeft size={20} className="text-black" />
-          </button>
-        </div>
+    <div className="min-h-screen bg-white pb-20">
+      {/* Gambar Properti */}
+      <div className="h-72 w-full bg-gray-100 relative">
+        <img src={property?.photo_url} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" alt={property?.name} />
+        <button onClick={() => navigate(-1)} className="absolute top-6 left-6 bg-white/90 p-2 rounded-full shadow-lg"><ChevronLeft size={20} /></button>
       </div>
 
-      {/* Konten Detail */}
-      <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-0 shadow-sm">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{property.name}</h1>
-          <div className="flex items-center gap-4 text-sm">
-             <div className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-md">
-                <Star className="fill-orange-400 text-orange-400" size={14} />
-                <span className="font-semibold">{property.rating}</span>
-             </div>
-             <span className="text-gray-500">({property.reviews} ulasan)</span>
-             <span className="text-gray-300">•</span>
-             <div className="flex items-center gap-1 text-gray-600">
-                <MapPin size={14} />
-                <span>{property.location}</span>
-             </div>
-          </div>
+      <div className="px-6 mt-8">
+        <h1 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2">{property?.name}</h1>
+        <div className="flex items-center gap-2 text-gray-400 mb-6">
+            <MapPin size={14} className="text-black" />
+            <span className="text-[11px] font-bold uppercase italic">{property?.address}</span>
         </div>
 
-        <hr className="border-gray-100 mb-6" />
+        {/* --- BOOKING ENGINE SELECTION (Poin A) --- */}
+        <div className="bg-gray-50 rounded-[32px] p-6 border border-gray-100">
+            <h3 className="text-xs font-black uppercase italic tracking-widest mb-4 flex items-center gap-2">
+                <Zap size={14} fill="black" /> Pilih Durasi Istirahat
+            </h3>
 
-        <div className="mb-6">
-          <h3 className="text-lg font-bold mb-3">Fasilitas Utama</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {property.amenities?.map((item) => {
-               const Icon = amenityIcons[item] || Wifi;
-               return (
-                 <div key={item} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                    <Icon size={18} className="text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">{item}</span>
-                 </div>
-               )
-            })}
-          </div>
+            {/* Tab Durasi */}
+            <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 mb-6">
+                {['hourly', 'daily', 'monthly'].map(tab => (
+                    <button 
+                        key={tab}
+                        onClick={() => { setSelectedTab(tab); setSelectedDuration(null); }}
+                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedTab === tab ? 'bg-black text-white' : 'text-gray-400'}`}
+                    >
+                        {tab === 'hourly' ? 'Transit' : tab === 'daily' ? 'Harian' : 'Bulanan'}
+                    </button>
+                ))}
+            </div>
+
+            {/* List Tombol Durasi (Poin A - Pilihan Terbatas) */}
+            <div className="grid grid-cols-2 gap-3">
+                {pricing[selectedTab] && Object.entries(pricing[selectedTab])
+                    .filter(([_, config]) => config.active) // Hanya tampilkan yang ON
+                    .map(([unit, config]) => (
+                    <button 
+                        key={unit}
+                        onClick={() => setSelectedDuration({ unit, price: config.price })}
+                        className={`p-4 rounded-2xl border-2 transition-all text-left ${selectedDuration?.unit === unit ? 'border-black bg-white' : 'border-transparent bg-white/50 text-gray-400'}`}
+                    >
+                        <span className="block text-[11px] font-black uppercase italic leading-none mb-1">
+                            {unit} {selectedTab === 'hourly' ? 'Jam' : selectedTab === 'daily' ? 'Hari' : 'Bulan'}
+                        </span>
+                        <span className="text-[10px] font-bold">Rp {config.price.toLocaleString()}</span>
+                    </button>
+                ))}
+            </div>
         </div>
 
-        <div className="mb-6">
-          <h3 className="text-lg font-bold mb-2">Tentang Properti</h3>
-          <p className="text-gray-600 leading-relaxed text-sm text-justify">
-            {property.description || "Belum ada deskripsi untuk properti ini."}
-          </p>
+        {/* Info Pemilik & Keamanan */}
+        <div className="mt-8 flex items-center justify-between p-5 bg-black text-white rounded-[24px]">
+            <div className="flex items-center gap-3">
+                <ShieldCheck size={24} className="text-gray-400" />
+                <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Keamanan IoT</p>
+                    <p className="text-xs font-black italic uppercase">Smart Passcode Aktif</p>
+                </div>
+            </div>
+            <div className="text-right">
+                <p className="text-[9px] font-bold uppercase text-gray-400">Total Bayar</p>
+                <p className="text-lg font-black italic leading-none">Rp {(selectedDuration?.price || 0).toLocaleString()}</p>
+            </div>
         </div>
-      </div>
 
-      {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
-        <div className="container mx-auto max-w-3xl flex items-center justify-between">
-          <div>
-            <p className="text-xs text-gray-500">Harga per bulan</p>
-            <p className="text-xl font-bold text-black">{formatRupiah(property.price)}</p>
-          </div>
-          <Button className="bg-black text-white px-8 rounded-xl h-12 font-semibold hover:bg-gray-800">
-            Ajukan Sewa
-          </Button>
-        </div>
+        <Button 
+            onClick={handleBooking}
+            disabled={bookingLoading}
+            className="w-full bg-black text-white rounded-2xl h-14 font-black text-xs uppercase tracking-[0.2em] mt-6 shadow-xl active:scale-95 transition-all"
+          >
+            {bookingLoading ? <Loader2 className="animate-spin" /> : 'Pesan Sekarang'}
+        </Button>
       </div>
     </div>
   );
