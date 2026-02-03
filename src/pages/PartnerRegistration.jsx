@@ -15,83 +15,73 @@ const PartnerRegistration = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  // State untuk data form
   const [formData, setFormData] = useState({
     kosName: '',
     address: '',
   });
 
-  // State baru untuk penanganan file lokal (sebelum upload)
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Membersihkan memori pratinjau saat komponen ditutup
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
-  // 1. Logika Pilih File & Ganti Foto (Hanya di HP/Browser User)
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
-    // Validasi tipe file
     if (!file.type.startsWith('image/')) {
       return toast({ variant: "destructive", description: "Format file harus gambar." });
     }
-
-    // Buat pratinjau lokal agar user bisa lihat sebelum kirim
     const localUrl = URL.createObjectURL(file);
     setSelectedFile(file);
     setPreviewUrl(localUrl);
-    
-    toast({ title: "Foto Terpilih", description: "Anda bisa menggantinya jika salah pilih sebelum menekan tombol Kirim." });
+    toast({ title: "Foto Terpilih", description: "Siap diunggah saat pendaftaran dikirim." });
   };
 
-  // 2. Logika Utama: Unggah & Daftar (Saat Tombol Klik)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!selectedFile) {
-      return toast({ variant: "destructive", description: "Harap pilih foto properti terlebih dahulu." });
-    }
+    if (!selectedFile) return toast({ variant: "destructive", description: "Harap pilih foto properti." });
 
     setLoading(true);
     try {
-      // A. PROSES UNGGAH KE BUCKET (Baru dijalankan di sini)
+      // 1. Unggah Foto ke Bucket 'property-images'
       const filePath = `properties/${user.id}/${Date.now()}_${selectedFile.name}`;
       const { error: uploadError } = await supabase.storage
         .from('property-images')
         .upload(filePath, selectedFile);
-
       if (uploadError) throw uploadError;
 
-      // B. AMBIL URL PUBLIK
       const { data: urlData } = supabase.storage
         .from('property-images')
         .getPublicUrl(filePath);
 
       const finalPhotoUrl = urlData.publicUrl;
 
-      // C. SIMPAN DATA KE DATABASE PROFIL
-      const { error: dbError } = await supabase
+      // 2. Update Status Mitra di Tabel 'profiles'
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
-          is_mitra: true, 
-          role: 'mitra',
-          first_name: formData.kosName,
-          property_photo_url: finalPhotoUrl 
-        })
+        .update({ is_mitra: true, role: 'mitra' })
         .eq('id', user.id);
+      if (profileError) throw profileError;
 
-      if (dbError) throw dbError;
+      // 3. Masukkan Data ke Tabel 'properties' agar muncul di pencarian
+      const { error: propertyError } = await supabase
+        .from('properties')
+        .insert({
+          owner_id: user.id,
+          name: formData.kosName,
+          address: formData.address,
+          photo_url: finalPhotoUrl,
+          is_active: true
+        });
+      if (propertyError) throw propertyError;
 
-      toast({ title: "Pendaftaran Berhasil!", description: "Data Anda dan foto properti telah resmi tersimpan." });
-      navigate('/profile');
+      toast({ title: "Pendaftaran Berhasil!", description: "Kosan Anda kini aktif di hasil pencarian." });
+      navigate('/dashboard-mitra');
     } catch (error) {
-      console.error(error);
       toast({ variant: "destructive", title: "Gagal Mengirim", description: error.message });
     } finally {
       setLoading(false);
@@ -113,8 +103,8 @@ const PartnerRegistration = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-black text-white rounded-[20px] flex items-center justify-center mx-auto mb-4 shadow-xl"><Home size={32} /></div>
-            <h2 className="text-xl font-black uppercase italic tracking-tight">Informasi Properti</h2>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Lengkapi data kos/apartemen Anda</p>
+            <h2 className="text-xl font-black uppercase italic tracking-tight leading-none">Informasi Properti</h2>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 italic">Lengkapi data kos/apartemen Anda</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -130,11 +120,10 @@ const PartnerRegistration = () => {
               <Label className="text-[11px] font-bold text-gray-500 uppercase ml-1 tracking-wider">Alamat Lengkap Properti</Label>
               <div className="relative">
                 <MapPin className="absolute left-4 top-3.5 text-gray-300" size={18} />
-                <Input placeholder="Jalan, No, RT/RW, Kecamatan..." className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
+                <Input placeholder="Haurgeulis, Indramayu, jawa barat." className="h-12 pl-12 rounded-xl border-gray-100 bg-white font-medium placeholder:text-gray-200" required value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} />
               </div>
             </div>
 
-            {/* Area Pilih & Ganti Foto (Hanya di Browser User) */}
             <div className="relative p-1 border-2 border-dashed border-gray-100 rounded-[32px] overflow-hidden bg-gray-50 hover:bg-white transition-all group min-h-[160px] flex items-center justify-center">
               {previewUrl ? (
                 <div className="relative w-full h-full p-2 flex flex-col items-center">
@@ -147,16 +136,10 @@ const PartnerRegistration = () => {
               ) : (
                 <div className="flex flex-col items-center py-10 pointer-events-none">
                   <Camera className="text-gray-200 group-hover:text-black mb-2 transition-colors" size={32} />
-                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic">Pilih Foto Properti</span>
+                  <span className="text-[10px] font-black text-gray-300 group-hover:text-black uppercase tracking-widest italic text-center">Pilih Foto Properti</span>
                 </div>
               )}
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="absolute inset-0 opacity-0 cursor-pointer" 
-                onChange={handleFileChange} 
-                disabled={loading} 
-              />
+              <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleFileChange} disabled={loading} />
             </div>
 
             <Button type="submit" disabled={loading} className="w-full bg-black text-white rounded-xl h-14 font-black text-[12px] tracking-[0.2em] uppercase mt-4 shadow-xl active:scale-95 transition-all">
