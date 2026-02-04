@@ -1,121 +1,137 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ChevronLeft, MapPin, Star, Clock, Calendar, 
-  ShieldCheck, Zap, Wifi, Wind, Coffee, Loader2 
+  ChevronLeft, MapPin, Star, ShieldCheck, 
+  Zap, Loader2, Info, LayoutGrid, Image as ImageIcon 
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
 
 const PropertyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [property, setProperty] = useState(null);
   const [rooms, setRooms] = useState([]);
-  
-  // State Pilihan Tamu [Poin A.2]
-  const [selectedRoom, setSelectedRoom] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('hourly'); // hourly atau monthly
-  const [selectedDuration, setSelectedDuration] = useState(null);
 
-  useEffect(() => { fetchPropertyDetails(); }, [id]);
+  useEffect(() => { fetchDetails(); }, [id]);
 
-  const fetchPropertyDetails = async () => {
+  const fetchDetails = async () => {
     try {
+      // Ambil Data Properti
       const { data: prop } = await supabase.from('properties').select('*').eq('id', id).single();
       if (prop) {
         setProperty(prop);
-        const { data: rm } = await supabase.from('rooms').select('*').eq('property_id', id);
+        // Ambil Daftar Kamar/Pintu
+        const { data: rm } = await supabase.from('rooms').select('*').eq('property_id', id).order('room_number');
         setRooms(rm || []);
-        if (rm?.length > 0) setSelectedRoom(rm[0]); // Default pilih kamar pertama
       }
     } catch (error) { console.error(error); }
     finally { setLoading(false); }
   };
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
-  };
-
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-black" /></div>;
 
   return (
-    <div className="min-h-screen bg-white pb-32">
-      {/* Header & Gambar */}
-      <div className="relative h-80 overflow-hidden">
-        <button onClick={() => navigate(-1)} className="absolute top-6 left-6 z-10 bg-white/20 backdrop-blur-md p-3 rounded-2xl text-white hover:bg-white hover:text-black transition-all shadow-xl">
+    <div className="min-h-screen bg-[#F9F9F9] pb-20 font-sans">
+      {/* 1. HERO SECTION (Main Property Image) */}
+      <div className="relative h-[45vh] overflow-hidden">
+        <button 
+          onClick={() => navigate('/')} 
+          className="absolute top-8 left-6 z-20 bg-white/20 backdrop-blur-xl p-3 rounded-2xl text-white hover:bg-white hover:text-black transition-all shadow-2xl"
+        >
           <ChevronLeft size={24} />
         </button>
-        <img src={property?.photo_url || "/placeholder.jpg"} className="w-full h-full object-cover grayscale" alt={property?.name} />
-        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/80 to-transparent" />
+        <img 
+          src={property?.photo_url || "/placeholder.jpg"} 
+          className="w-full h-full object-cover grayscale brightness-75" 
+          alt={property?.name} 
+        />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F9F9F9] to-transparent" />
       </div>
 
-      <div className="max-w-2xl mx-auto px-6 -mt-12 relative z-10">
-        <div className="bg-white rounded-[40px] p-8 shadow-2xl border border-gray-100">
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter mb-2 leading-none">{property?.name}</h1>
-          <div className="flex items-center gap-2 text-gray-400 mb-6">
-            <MapPin size={16} className="text-black" />
-            <span className="text-[11px] font-bold uppercase italic tracking-wider">{property?.address}</span>
-          </div>
-
-          {/* --- PILIH KAMAR (MULTI-PINTU) [Poin B] --- */}
-          <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-4 italic">Pilih Unit Kamar</p>
-          <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
-            {rooms.map((room) => (
-              <button 
-                key={room.id} 
-                onClick={() => { setSelectedRoom(room); setSelectedDuration(null); }}
-                className={`shrink-0 px-6 py-4 rounded-3xl border-2 transition-all ${selectedRoom?.id === room.id ? 'border-black bg-black text-white' : 'border-gray-100 bg-gray-50 text-gray-400'}`}
-              >
-                <p className="text-[10px] font-black uppercase italic">Pintu {room.room_number}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* --- PILIH KATEGORI (JAM / BULAN) --- */}
-          <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 my-6">
-            <button onClick={() => { setSelectedCategory('hourly'); setSelectedDuration(null); }} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${selectedCategory === 'hourly' ? 'bg-black text-white shadow-lg' : 'text-gray-400'}`}>Transit (Jam)</button>
-            <button onClick={() => { setSelectedCategory('monthly'); setSelectedDuration(null); }} className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${selectedCategory === 'monthly' ? 'bg-black text-white shadow-lg' : 'text-gray-400'}`}>Bulanan</button>
-          </div>
-
-          {/* --- DAFTAR DURASI YANG AKTIF (1-24 Jam / 1-12 Bulan) [Poin A.2 & B] --- */}
-          <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-4 italic">Pilih Durasi Sewa</p>
-          <div className="grid grid-cols-2 gap-3">
-            {selectedRoom?.pricing_plan[selectedCategory] && 
-             Object.entries(selectedRoom.pricing_plan[selectedCategory])
-             .filter(([_, data]) => data.active) // HANYA TAMPILKAN YANG "ON" DI DASHBOARD MITRA
-             .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-             .map(([unit, data]) => (
-              <button 
-                key={unit}
-                onClick={() => setSelectedDuration({ unit, price: data.price })}
-                className={`p-4 rounded-3xl border transition-all text-left group ${selectedDuration?.unit === unit ? 'bg-black border-black text-white' : 'bg-white border-gray-100'}`}
-              >
-                <p className={`text-[10px] font-black uppercase italic ${selectedDuration?.unit === unit ? 'text-gray-400' : 'text-gray-300'}`}>{unit} {selectedCategory === 'hourly' ? 'Jam' : 'Bulan'}</p>
-                <p className="text-sm font-black italic mt-1">{formatRupiah(data.price)}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* --- FLOATING PAYMENT BAR --- */}
-      {selectedDuration && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-6 z-50 animate-in slide-in-from-bottom duration-500">
-          <div className="max-w-2xl mx-auto flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Total Pembayaran</p>
-              <h2 className="text-2xl font-black italic tracking-tighter leading-none">{formatRupiah(selectedDuration.price)}</h2>
+      {/* 2. PROPERTY INFO CARD */}
+      <div className="max-w-2xl mx-auto px-6 -mt-20 relative z-10">
+        <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-start mb-2">
+            <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">{property?.name}</h1>
+            <div className="bg-black text-white px-3 py-1 rounded-lg text-[8px] font-black uppercase italic tracking-widest flex items-center gap-1">
+              <Star size={10} fill="white" /> {property?.rating || '4.8'}
             </div>
-            <Button className="bg-black hover:bg-gray-800 text-white rounded-2xl h-14 px-10 text-xs font-black uppercase italic tracking-widest shadow-2xl active:scale-95 transition-all">
-              Bayar Sekarang
-            </Button>
+          </div>
+          
+          <div className="flex items-center gap-2 text-gray-400 mb-6">
+            <MapPin size={14} className="text-black shrink-0" />
+            <span className="text-[10px] font-bold uppercase italic tracking-wider line-clamp-1">{property?.address}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-gray-50 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-black">
+                <ShieldCheck size={20} />
+              </div>
+              <p className="text-[9px] font-black uppercase italic leading-tight text-gray-400">Security<br/><span className="text-black">24 Hours</span></p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-black">
+                <Zap size={20} />
+              </div>
+              <p className="text-[9px] font-black uppercase italic leading-tight text-gray-400">Access<br/><span className="text-black">Smart Lock</span></p>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* 3. ROOM UNITS LIST (LIST PINTU) */}
+        <div className="mt-10 space-y-6">
+          <h2 className="text-xs font-black uppercase italic tracking-[0.2em] text-gray-300 px-2 flex items-center gap-2">
+            <LayoutGrid size={16} /> Pilih Unit Kamar
+          </h2>
+
+          {rooms.map((room) => (
+            <div key={room.id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm space-y-6 group">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none">Pintu {room.room_number}</h3>
+                  <p className="text-[9px] font-bold text-gray-300 mt-2 uppercase flex items-center gap-1 italic">
+                    <Info size={12} className="text-black" /> Fasilitas Lengkap & Nyaman
+                  </p>
+                </div>
+                {/* TOMBOL KE HALAMAN BOOKING SEPERTI REKAM LAYAR */}
+                <Button 
+                  onClick={() => navigate(`/booking/${property.id}/${room.id}`)}
+                  className="bg-black hover:bg-gray-800 text-white rounded-2xl h-12 px-8 font-black uppercase italic text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
+                >
+                  Pesan Unit
+                </Button>
+              </div>
+
+              {/* GALLERY FOTO PER KAMAR */}
+              <div className="space-y-3">
+                <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                  <ImageIcon size={12} /> Detail Fasilitas Kamar
+                </p>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  {room.room_photos?.length > 0 ? (
+                    room.room_photos.map((url, i) => (
+                      <div key={i} className="relative shrink-0">
+                        <img 
+                          src={url} 
+                          className="w-48 h-48 rounded-[32px] object-cover border border-gray-50 hover:scale-105 transition-all duration-500" 
+                          alt={`Fasilitas ${room.room_number}`} 
+                        />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="w-full py-10 bg-gray-50 rounded-[32px] flex items-center justify-center border-2 border-dashed border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">Belum Ada Foto</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
