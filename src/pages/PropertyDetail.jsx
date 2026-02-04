@@ -2,10 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, MapPin, Star, ShieldCheck, 
-  Zap, Loader2, Info, LayoutGrid, Image as ImageIcon 
+  Zap, Loader2, Info, LayoutGrid, Image as ImageIcon,
+  Wifi, Wind, Tv, CheckCircle2, Droplets, Laptop, Shirt, GlassWater
 } from 'lucide-react';
 import { supabase } from '@/lib/customSupabaseClient';
 import { Button } from '@/components/ui/button';
+
+// Objek untuk memetakan ikon fasilitas
+const amenityIcons = {
+  "WiFi": <Wifi size={14} />,
+  "AC": <Wind size={14} />,
+  "Smart TV": <Tv size={14} />,
+  "Kamar Mandi Dalam": <CheckCircle2 size={14} />,
+  "Water Heater": <Droplets size={14} />,
+  "Meja Kerja": <Laptop size={14} />,
+  "Lemari Pakaian": <Shirt size={14} />,
+  "Dispenser": <GlassWater size={14} />
+};
 
 const PropertyDetail = () => {
   const { id } = useParams();
@@ -18,11 +31,9 @@ const PropertyDetail = () => {
 
   const fetchDetails = async () => {
     try {
-      // Ambil Data Properti
       const { data: prop } = await supabase.from('properties').select('*').eq('id', id).single();
       if (prop) {
         setProperty(prop);
-        // Ambil Daftar Kamar/Pintu berdasarkan Property ID
         const { data: rm } = await supabase.from('rooms').select('*').eq('property_id', id).order('room_number');
         setRooms(rm || []);
       }
@@ -38,7 +49,7 @@ const PropertyDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#F9F9F9] pb-20 font-sans">
-      {/* 1. HERO SECTION - Poto Asli Tanpa Grayscale */}
+      {/* 1. HERO SECTION - Poto Asli */}
       <div className="relative h-[45vh] overflow-hidden">
         <button 
           onClick={() => navigate('/')} 
@@ -51,11 +62,9 @@ const PropertyDetail = () => {
           className="w-full h-full object-cover" 
           alt={property?.name} 
         />
-        {/* Overlay gradient untuk transisi ke konten */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#F9F9F9] to-transparent" />
       </div>
 
-      {/* 2. PROPERTY INFO CARD */}
       <div className="max-w-2xl mx-auto px-6 -mt-20 relative z-10">
         <div className="bg-white rounded-[40px] p-8 shadow-sm border border-gray-100">
           <div className="flex justify-between items-start mb-2">
@@ -100,26 +109,37 @@ const PropertyDetail = () => {
 
           {rooms.map((room) => (
             <div key={room.id} className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none">Pintu {room.room_number}</h3>
-                  <p className="text-[9px] font-bold text-gray-300 mt-2 uppercase flex items-center gap-1 italic leading-none">
-                    <Info size={12} className="text-black" /> Fasilitas Kamar Terjamin
-                  </p>
+                  
+                  {/* --- TAMPILAN FASILITAS UNIT (BARU) --- */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {room.amenities?.length > 0 ? (
+                      room.amenities.map((item) => (
+                        <div key={item} className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                          <span className="text-black">{amenityIcons[item] || <CheckCircle2 size={14} />}</span>
+                          <span className="text-[8px] font-bold uppercase text-gray-500 italic">{item}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-[8px] text-gray-300 italic uppercase">Fasilitas Standar Aktif</p>
+                    )}
+                  </div>
                 </div>
-                {/* Tombol Pesan mengarah ke halaman BookingPage baru */}
+                
                 <Button 
                   onClick={() => navigate(`/booking/${property.id}/${room.id}`)}
-                  className="bg-black hover:bg-gray-800 text-white rounded-2xl h-12 px-8 font-black uppercase italic text-[10px] tracking-widest shadow-lg active:scale-95 transition-all"
+                  className="bg-black hover:bg-gray-800 text-white rounded-2xl h-12 px-8 font-black uppercase italic text-[10px] tracking-widest shadow-lg active:scale-95 transition-all shrink-0"
                 >
                   Pesan Unit
                 </Button>
               </div>
 
-              {/* 4. GALLERY FOTO PER UNIT - Warna Asli */}
-              <div className="space-y-4">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <ImageIcon size={12} /> Galeri Fasilitas Interior
+              {/* 4. GALLERY FOTO PER UNIT */}
+              <div className="space-y-4 pt-4 border-t border-gray-50">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2 italic">
+                  <ImageIcon size={12} /> Galeri Interior Kamar
                 </p>
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                   {room.room_photos?.length > 0 ? (
@@ -127,14 +147,14 @@ const PropertyDetail = () => {
                       <div key={i} className="relative shrink-0">
                         <img 
                           src={url} 
-                          className="w-56 h-56 rounded-[32px] object-cover border border-gray-50 shadow-sm hover:scale-105 transition-all duration-500" 
-                          alt={`Interior Pintu ${room.room_number}`} 
+                          className="w-56 h-56 rounded-[32px] object-cover border border-gray-50 shadow-sm" 
+                          alt={`Interior ${room.room_number}`} 
                         />
                       </div>
                     ))
                   ) : (
                     <div className="w-full py-12 bg-gray-50 rounded-[40px] flex items-center justify-center border-2 border-dashed border-gray-100">
-                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">Belum ada foto fasilitas</p>
+                      <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">Belum ada foto</p>
                     </div>
                   )}
                 </div>
