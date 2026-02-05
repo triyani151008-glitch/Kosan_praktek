@@ -1,3 +1,4 @@
+// src/pages/PropertyDetail.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -113,7 +114,7 @@ const PropertyDetail = () => {
                 <div>
                   <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none">Pintu {room.room_number}</h3>
                   
-                  {/* --- TAMPILAN FASILITAS UNIT (BARU) --- */}
+                  {/* --- TAMPILAN FASILITAS UNIT --- */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     {room.amenities?.length > 0 ? (
                       room.amenities.map((item) => (
@@ -128,8 +129,9 @@ const PropertyDetail = () => {
                   </div>
                 </div>
                 
+                {/* --- PERBAIKAN DI SINI: Navigasi hanya mengirim room.id --- */}
                 <Button 
-                  onClick={() => navigate(`/booking/${property.id}/${room.id}`)}
+                  onClick={() => navigate(`/booking/${room.id}`)}
                   className="bg-black hover:bg-gray-800 text-white rounded-2xl h-12 px-8 font-black uppercase italic text-[10px] tracking-widest shadow-lg active:scale-95 transition-all shrink-0"
                 >
                   Pesan Unit
