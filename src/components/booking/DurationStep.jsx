@@ -1,72 +1,103 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Calendar } from 'lucide-react';
+import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
 const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
-  // Data ini nantinya berasal dari kolom 'settings' atau 'tariffs' di database Supabase
-  // Jika propertyData.tariffs tidak ada, gunakan default (semua aktif)
-  const hourlyOptions = propertyData?.tariffs?.hourly || [
-    { label: '1 Jam', value: 1, active: true },
-    { label: '2 Jam', value: 2, active: true },
-    { label: '3 Jam', value: 3, active: true },
-    { label: '4 Jam', value: 4, active: true },
-    { label: '5 Jam', value: 5, active: true },
-    { label: '6 Jam', value: 6, active: true },
-    { label: '12 Jam', value: 12, active: true },
-    { label: '24 Jam', value: 24, active: true },
-  ];
+  
+  // Helper untuk format Rupiah
+  const formatRupiah = (amount) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
 
-  const monthlyOptions = propertyData?.tariffs?.monthly || [
-    { label: '1 Bulan', value: 1, active: true },
-    { label: '2 Bulan', value: 2, active: true },
-    { label: '3 Bulan', value: 3, active: true },
-    { label: '4 Bulan', value: 4, active: true },
-    { label: '5 Bulan', value: 5, active: true },
-    { label: '6 Bulan', value: 6, active: true },
-    { label: '12 Bulan', value: 12, active: true },
-  ];
+  // Ambil data, filter yang aktif, lalu urutkan dari durasi terkecil -> terbesar
+  // Kita asumsikan struktur data tarif di DB memiliki field: { value, label, active, price }
+  
+  const hourlyOptions = (propertyData?.tariffs?.hourly || [
+    { label: '1 Jam', value: 1, active: true, price: 0 }, 
+    // ... default fallback (sebaiknya dihandle di parent/fetching agar price ada)
+  ])
+  .filter(opt => opt.active)
+  .sort((a, b) => a.value - b.value);
+
+  const monthlyOptions = (propertyData?.tariffs?.monthly || [])
+  .filter(opt => opt.active)
+  .sort((a, b) => a.value - b.value);
 
   return (
     <div className="space-y-6">
       <Tabs defaultValue="hourly" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="hourly"><Clock className="w-4 h-4 mr-2"/> Per Jam</TabsTrigger>
-          <TabsTrigger value="monthly"><Calendar className="w-4 h-4 mr-2"/> Per Bulan</TabsTrigger>
+          <TabsTrigger value="hourly"><Clock className="w-4 h-4 mr-2"/> Transit / Jam</TabsTrigger>
+          <TabsTrigger value="monthly"><Calendar className="w-4 h-4 mr-2"/> Bulanan</TabsTrigger>
         </TabsList>
 
+        {/* --- KONTEN PER JAM --- */}
         <TabsContent value="hourly" className="mt-4">
-          <div className="grid grid-cols-2 gap-3">
-            {hourlyOptions.filter(opt => opt.active).map((opt) => (
-              <Button
-                key={`h-${opt.value}`}
-                variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
-                onClick={() => onSelect({ ...opt, type: 'hour' })}
-                className="h-14"
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
+          {hourlyOptions.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {hourlyOptions.map((opt) => (
+                <Button
+                  key={`h-${opt.value}`}
+                  // Logic variant: Jika terpilih, solid. Jika tidak, outline.
+                  variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
+                  onClick={() => onSelect({ ...opt, type: 'hour' })}
+                  className="h-auto py-3 flex flex-col items-center justify-center gap-1"
+                >
+                  <span className="font-semibold text-sm">{opt.label}</span>
+                  {/* Tampilkan harga jika ada (lebih besar dari 0) */}
+                  {opt.price > 0 && (
+                    <span className={`text-xs ${selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? 'text-white/90' : 'text-muted-foreground'}`}>
+                      {formatRupiah(opt.price)}
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Layanan per jam tidak tersedia untuk unit ini." />
+          )}
         </TabsContent>
 
+        {/* --- KONTEN PER BULAN --- */}
         <TabsContent value="monthly" className="mt-4">
-          <div className="grid grid-cols-2 gap-3">
-            {monthlyOptions.filter(opt => opt.active).map((opt) => (
-              <Button
-                key={`m-${opt.value}`}
-                variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? "default" : "outline"}
-                onClick={() => onSelect({ ...opt, type: 'month' })}
-                className="h-14"
-              >
-                {opt.label}
-              </Button>
-            ))}
-          </div>
+          {monthlyOptions.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {monthlyOptions.map((opt) => (
+                <Button
+                  key={`m-${opt.value}`}
+                  variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? "default" : "outline"}
+                  onClick={() => onSelect({ ...opt, type: 'month' })}
+                  className="h-auto py-3 flex flex-col items-center justify-center gap-1"
+                >
+                  <span className="font-semibold text-sm">{opt.label}</span>
+                  {opt.price > 0 && (
+                    <span className={`text-xs ${selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? 'text-white/90' : 'text-muted-foreground'}`}>
+                      {formatRupiah(opt.price)}
+                    </span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState message="Layanan bulanan tidak tersedia untuk unit ini." />
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 };
+
+// Komponen kecil untuk tampilan kosong agar rapi
+const EmptyState = ({ message }) => (
+  <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground bg-slate-50 rounded-lg border border-dashed">
+    <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+    <p className="text-sm">{message}</p>
+  </div>
+);
 
 export default DurationStep;
