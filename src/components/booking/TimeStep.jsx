@@ -21,7 +21,7 @@ const TimeStep = ({ data, onUpdate, onNext, onPrev }) => {
         <div className="mt-8 p-6 bg-blue-50 rounded-[32px] border border-blue-100 flex gap-4">
           <Info className="text-blue-500 shrink-0" size={20} />
           <p className="text-[9px] font-bold text-blue-700 leading-relaxed uppercase italic">
-            Waktu ini akan disinkronkan dengan Smart Lock. Pastikan Anda tiba tepat waktu.
+            Waktu ini akan disinkronkan dengan Smart Lock. Pastikan Anda tiba sesuai jadwal.
           </p>
         </div>
       </div>
@@ -33,7 +33,7 @@ const TimeStep = ({ data, onUpdate, onNext, onPrev }) => {
           disabled={!data.startTime}
           className="flex-[2] bg-black text-white h-14 rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-xl"
         >
-          Pilih Durasi
+          Lanjut ke Durasi
         </Button>
       </div>
     </div>
