@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/customSupabaseClient';
 import { ChevronLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 
 // Import Komponen Stepper
@@ -20,7 +19,6 @@ const BookingPage = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
-  
   const [roomData, setRoomData] = useState(null);
   const [propertyData, setPropertyData] = useState(null);
   
@@ -39,7 +37,7 @@ const BookingPage = () => {
       try {
         if (!id) throw new Error("ID Kamar tidak ditemukan");
 
-        // Ambil data room termasuk kolom pricing_plan
+        // A. Ambil Data Kamar (Termasuk pricing_plan)
         const { data: rm, error: rmError } = await supabase
           .from('rooms')
           .select('*')
@@ -49,6 +47,7 @@ const BookingPage = () => {
         if (rmError || !rm) throw new Error("Data kamar tidak ditemukan");
         setRoomData(rm);
 
+        // B. Ambil Data Properti
         const { data: prop, error: propError } = await supabase
           .from('properties')
           .select('*')
@@ -66,11 +65,7 @@ const BookingPage = () => {
 
       } catch (err) {
         console.error(err);
-        toast({
-            title: "Error",
-            description: "Gagal memuat data booking.",
-            variant: "destructive"
-        });
+        toast({ title: "Error", description: err.message, variant: "destructive" });
         navigate(-1);
       } finally {
         setLoading(false);
@@ -82,10 +77,7 @@ const BookingPage = () => {
 
   const nextStep = () => setCurrentStep(prev => prev + 1);
   const prevStep = () => setCurrentStep(prev => prev - 1);
-
-  const updateData = (newData) => {
-    setBookingData(prev => ({ ...prev, ...newData }));
-  };
+  const updateData = (newData) => setBookingData(prev => ({ ...prev, ...newData }));
 
   const renderStep = () => {
     switch (currentStep) {
@@ -96,32 +88,19 @@ const BookingPage = () => {
       case 3: 
         return <TimeStep data={bookingData} onUpdate={updateData} onNext={nextStep} onPrev={prevStep} />;
       case 4: 
-        /**
-         * PERBAIKAN UTAMA:
-         * Membungkus pricing_plan dalam fallback agar tidak undefined.
-         * Komponen DurationStep akan membaca properti .plans dari sini.
-         */
-        const safePricingPlan = roomData?.pricing_plan || { 
-          hourly: { plans: [] }, 
-          monthly: { plans: [] } 
-        };
-
         return (
           <DurationStep 
-            data={bookingData} 
-            pricingPlan={safePricingPlan} 
-            onUpdate={updateData} 
-            onNext={nextStep} 
+            pricingPlan={roomData?.pricing_plan} // Mengirim data JSONB dari DB
+            selectedDuration={bookingData.duration}
+            onSelect={(val) => {
+              updateData({ duration: val, totalPrice: val.price });
+              nextStep();
+            }}
             onPrev={prevStep} 
           />
         );
       case 5: 
-        return <SummaryStep 
-          data={bookingData} 
-          room={roomData} 
-          property={propertyData} 
-          onPrev={prevStep} 
-        />;
+        return <SummaryStep data={bookingData} room={roomData} property={propertyData} onPrev={prevStep} />;
       default:
         return null;
     }
@@ -146,10 +125,9 @@ const BookingPage = () => {
           </p>
         </div>
       </div>
-
       <div className="max-w-2xl mx-auto px-6 mt-8">
         <StepIndicator currentStep={currentStep} totalSteps={5} />
-        <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mt-8">
           {renderStep()}
         </div>
       </div>
