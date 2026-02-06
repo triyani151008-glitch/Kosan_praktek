@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
 const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
   
+  // Debug log untuk memastikan data sampai ke komponen
+  useEffect(() => {
+    console.log("DEBUG - Pricing Plan received:", pricingPlan);
+  }, [pricingPlan]);
+
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -14,13 +19,13 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
   };
 
   /**
-   * Logika Pengambilan Data:
-   * Mengambil Array dari pricingPlan[type].plans sesuai video DB
+   * Mengambil array dari pricingPlan[type].plans
    */
   const getOptions = (type) => {
-    const items = pricingPlan?.[type]?.plans || [];
+    // Struktur DB: pricing_plan -> hourly -> plans -> [array]
+    const plans = pricingPlan?.[type]?.plans || [];
     
-    return items
+    return plans
       .filter(opt => opt.active === true && opt.price > 0)
       .map(opt => ({
         ...opt,
@@ -35,14 +40,14 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
   const monthlyOptions = getOptions('monthly');
 
   return (
-    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4">
+    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Tabs defaultValue="hourly" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="hourly">
-            <Clock className="w-4 h-4 mr-2"/> Transit / Jam
+          <TabsTrigger value="hourly" className="flex items-center gap-2">
+            <Clock size={16} /> Transit / Jam
           </TabsTrigger>
-          <TabsTrigger value="monthly">
-            <Calendar className="w-4 h-4 mr-2"/> Bulanan
+          <TabsTrigger value="monthly" className="flex items-center gap-2">
+            <Calendar size={16} /> Bulanan
           </TabsTrigger>
         </TabsList>
 
@@ -87,7 +92,7 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
         </TabsContent>
       </Tabs>
       
-      <Button variant="ghost" onClick={onPrev} className="w-full text-gray-400 text-xs">
+      <Button variant="ghost" onClick={onPrev} className="w-full text-gray-400 text-xs hover:bg-transparent hover:text-black">
         Kembali ke Pengaturan Jam
       </Button>
     </div>
@@ -95,9 +100,9 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
 };
 
 const EmptyState = ({ message }) => (
-  <div className="flex flex-col items-center justify-center py-12 px-6 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-center">
-    <AlertCircle className="w-8 h-8 text-slate-300 mb-3" />
-    <p className="text-sm text-slate-500 font-medium">{message}</p>
+  <div className="flex flex-col items-center justify-center py-12 px-6 bg-white rounded-2xl border-2 border-dashed border-gray-100 text-center">
+    <AlertCircle className="w-10 h-10 text-gray-200 mb-4" />
+    <p className="text-sm text-gray-400 font-medium max-w-[200px] leading-relaxed">{message}</p>
   </div>
 );
 
