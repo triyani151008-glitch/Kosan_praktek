@@ -5,7 +5,6 @@ import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
 const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
   
-  // Fungsi Helper: Format mata uang ke Rupiah
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -15,32 +14,28 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
   };
 
   /**
-   * PERBAIKAN LOGIKA:
-   * 1. Cek sumber data: Bisa dari 'pricing_plan' (raw DB) atau 'tariffs' (jika sudah di-transform).
-   * 2. Mapping data: Ubah 'duration' menjadi 'label' dan 'value' agar sesuai UI.
+   * PERBAIKAN KRUSIAL:
+   * Mengakses properti '.plans' di dalam hourly/monthly sesuai struktur DB Supabase Anda.
    */
+  const pricing = propertyData?.pricing_plan || {};
   
-  // Ambil raw data dari kolom pricing_plan (atau tariffs sebagai fallback)
-  const rawData = propertyData?.pricing_plan || propertyData?.tariffs || {};
-
-  // Helper untuk memproses opsi (Map & Filter)
   const processOptions = (items, type) => {
+    // Pastikan kita menerima array dari property 'plans'
     if (!Array.isArray(items)) return [];
     
     return items
-      .filter(item => item.active === true && item.price > 0) // Filter yang aktif saja
-      .map(item => ({
-        ...item,
-        // Jika tidak ada 'value', pakai 'duration'
-        value: item.value || item.duration, 
-        // Jika tidak ada 'label', buat label otomatis
-        label: item.label || (type === 'hour' ? `${item.duration} Jam` : `${item.duration} Bulan`)
+      .filter(opt => opt.active === true && opt.price > 0)
+      .map(opt => ({
+        ...opt,
+        value: opt.duration, // Menggunakan 'duration' sebagai value
+        label: type === 'hour' ? `${opt.duration} Jam` : `${opt.duration} Bulan`
       }))
       .sort((a, b) => a.value - b.value);
   };
 
-  const hourlyOptions = processOptions(rawData.hourly, 'hour');
-  const monthlyOptions = processOptions(rawData.monthly, 'month');
+  // Ambil array dari pricing.hourly.plans dan pricing.monthly.plans
+  const hourlyOptions = processOptions(pricing.hourly?.plans, 'hour');
+  const monthlyOptions = processOptions(pricing.monthly?.plans, 'month');
 
   return (
     <div className="w-full space-y-6">
@@ -54,7 +49,6 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Konten Per Jam */}
         <TabsContent value="hourly" className="mt-4">
           {hourlyOptions.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">
@@ -62,7 +56,7 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
                 <Button
                   key={`h-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
-                  onClick={() => onSelect({ ...opt, type: 'hour' })} // Kirim data lengkap
+                  onClick={() => onSelect({ ...opt, type: 'hour' })}
                   className="h-16 flex justify-between px-6 border-2"
                 >
                   <span className="font-bold">{opt.label}</span>
@@ -75,7 +69,6 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
           )}
         </TabsContent>
 
-        {/* Konten Bulanan */}
         <TabsContent value="monthly" className="mt-4">
           {monthlyOptions.length > 0 ? (
             <div className="grid grid-cols-1 gap-3">
