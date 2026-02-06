@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
-const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
+// SAYA MENGUBAH NAMA PROP MENJADI 'pricingPlan' AGAR SESUAI DENGAN BookingPage.jsx
+const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
   
+  // Debugging: Muncul di Console Browser (F12) untuk cek data masuk
+  useEffect(() => {
+    console.log("Data pricingPlan yang diterima:", pricingPlan);
+  }, [pricingPlan]);
+
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -14,28 +20,28 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
   };
 
   /**
-   * PERBAIKAN KRUSIAL:
-   * Mengakses properti '.plans' di dalam hourly/monthly sesuai struktur DB Supabase Anda.
+   * PROSES DATA:
+   * Mengambil dari pricingPlan.hourly.plans sesuai struktur di Supabase Anda
    */
-  const pricing = propertyData?.pricing_plan || {};
-  
-  const processOptions = (items, type) => {
-    // Pastikan kita menerima array dari property 'plans'
+  const processOptions = (type) => {
+    // Akses ke pricingPlan[type].plans (karena di video ada properti .plans)
+    const items = pricingPlan?.[type]?.plans || [];
+    
     if (!Array.isArray(items)) return [];
     
     return items
       .filter(opt => opt.active === true && opt.price > 0)
       .map(opt => ({
         ...opt,
-        value: opt.duration, // Menggunakan 'duration' sebagai value
-        label: type === 'hour' ? `${opt.duration} Jam` : `${opt.duration} Bulan`
+        value: opt.duration,
+        label: type === 'hourly' ? `${opt.duration} Jam` : `${opt.duration} Bulan`,
+        type: type === 'hourly' ? 'hour' : 'month'
       }))
       .sort((a, b) => a.value - b.value);
   };
 
-  // Ambil array dari pricing.hourly.plans dan pricing.monthly.plans
-  const hourlyOptions = processOptions(pricing.hourly?.plans, 'hour');
-  const monthlyOptions = processOptions(pricing.monthly?.plans, 'month');
+  const hourlyOptions = processOptions('hourly');
+  const monthlyOptions = processOptions('monthly');
 
   return (
     <div className="w-full space-y-6">
@@ -55,8 +61,9 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
               {hourlyOptions.map((opt) => (
                 <Button
                   key={`h-${opt.value}`}
+                  // Pastikan pengecekan selectedDuration sesuai dengan data yang di-select
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
-                  onClick={() => onSelect({ ...opt, type: 'hour' })}
+                  onClick={() => onSelect(opt)}
                   className="h-16 flex justify-between px-6 border-2"
                 >
                   <span className="font-bold">{opt.label}</span>
@@ -76,7 +83,7 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
                 <Button
                   key={`m-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? "default" : "outline"}
-                  onClick={() => onSelect({ ...opt, type: 'month' })}
+                  onClick={() => onSelect(opt)}
                   className="h-16 flex justify-between px-6 border-2"
                 >
                   <span className="font-bold">{opt.label}</span>
