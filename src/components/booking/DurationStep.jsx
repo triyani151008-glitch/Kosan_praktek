@@ -1,16 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
-// SAYA MENGUBAH NAMA PROP MENJADI 'pricingPlan' AGAR SESUAI DENGAN BookingPage.jsx
+// Sesuai dengan BookingPage.jsx, kita gunakan nama prop 'pricingPlan'
 const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
   
-  // Debugging: Muncul di Console Browser (F12) untuk cek data masuk
-  useEffect(() => {
-    console.log("Data pricingPlan yang diterima:", pricingPlan);
-  }, [pricingPlan]);
-
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -20,11 +15,11 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
   };
 
   /**
-   * PROSES DATA:
-   * Mengambil dari pricingPlan.hourly.plans sesuai struktur di Supabase Anda
+   * PERBAIKAN: Masuk ke dalam properti .plans
+   * Sesuai struktur di DB: pricing_plan.hourly.plans
    */
   const processOptions = (type) => {
-    // Akses ke pricingPlan[type].plans (karena di video ada properti .plans)
+    // Ambil array plans dari objek hourly atau monthly
     const items = pricingPlan?.[type]?.plans || [];
     
     if (!Array.isArray(items)) return [];
@@ -61,7 +56,6 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
               {hourlyOptions.map((opt) => (
                 <Button
                   key={`h-${opt.value}`}
-                  // Pastikan pengecekan selectedDuration sesuai dengan data yang di-select
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
                   onClick={() => onSelect(opt)}
                   className="h-16 flex justify-between px-6 border-2"
