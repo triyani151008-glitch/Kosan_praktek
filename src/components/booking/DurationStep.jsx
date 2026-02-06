@@ -1,14 +1,25 @@
-import React, { useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
 const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
   
-  // Debug log untuk memastikan data sampai ke komponen
-  useEffect(() => {
-    console.log("DEBUG - Pricing Plan received:", pricingPlan);
+  // 1. Logika Parsing Data: Menangani jika data datang sebagai String atau Object
+  const parsedPlan = useMemo(() => {
+    if (!pricingPlan) return {};
+    if (typeof pricingPlan === 'string') {
+      try {
+        return JSON.parse(pricingPlan);
+      } catch (e) {
+        console.error("Gagal parse pricing_plan string:", e);
+        return {};
+      }
+    }
+    return pricingPlan;
   }, [pricingPlan]);
+
+  console.log("DEBUG - Parsed Pricing Plan:", parsedPlan);
 
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
@@ -18,12 +29,14 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
     }).format(amount || 0);
   };
 
-  /**
-   * Mengambil array dari pricingPlan[type].plans
-   */
+  // 2. Logika Pengambilan Opsi: Cek 'plans' di dalam hourly/monthly/daily
   const getOptions = (type) => {
-    // Struktur DB: pricing_plan -> hourly -> plans -> [array]
-    const plans = pricingPlan?.[type]?.plans || [];
+    // Di DB Anda, Bulanan bisa saja tersimpan di key 'daily' atau 'monthly'
+    const source = type === 'monthly' 
+      ? (parsedPlan.monthly || parsedPlan.daily) 
+      : parsedPlan.hourly;
+    
+    const plans = source?.plans || [];
     
     return plans
       .filter(opt => opt.active === true && opt.price > 0)
@@ -59,7 +72,7 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
                   key={`h-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
                   onClick={() => onSelect(opt)}
-                  className="h-16 flex justify-between px-6 border-2 transition-all hover:border-black"
+                  className="h-16 flex justify-between px-6 border-2 transition-all"
                 >
                   <span className="font-bold">{opt.label}</span>
                   <span className="font-medium opacity-80">{formatRupiah(opt.price)}</span>
@@ -79,7 +92,7 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
                   key={`m-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? "default" : "outline"}
                   onClick={() => onSelect(opt)}
-                  className="h-16 flex justify-between px-6 border-2 transition-all hover:border-black"
+                  className="h-16 flex justify-between px-6 border-2 transition-all"
                 >
                   <span className="font-bold">{opt.label}</span>
                   <span className="font-medium opacity-80">{formatRupiah(opt.price)}</span>
@@ -87,12 +100,12 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
               ))}
             </div>
           ) : (
-            <EmptyState message="Layanan bulanan tidak tersedia atau belum diatur oleh mitra." />
+            <EmptyState message="Layanan bulanan tidak tersedia untuk unit ini." />
           )}
         </TabsContent>
       </Tabs>
       
-      <Button variant="ghost" onClick={onPrev} className="w-full text-gray-400 text-xs hover:bg-transparent hover:text-black">
+      <Button variant="ghost" onClick={onPrev} className="w-full text-gray-400 text-xs">
         Kembali ke Pengaturan Jam
       </Button>
     </div>
@@ -102,7 +115,7 @@ const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
 const EmptyState = ({ message }) => (
   <div className="flex flex-col items-center justify-center py-12 px-6 bg-white rounded-2xl border-2 border-dashed border-gray-100 text-center">
     <AlertCircle className="w-10 h-10 text-gray-200 mb-4" />
-    <p className="text-sm text-gray-400 font-medium max-w-[200px] leading-relaxed">{message}</p>
+    <p className="text-sm text-gray-400 font-medium max-w-[200px]">{message}</p>
   </div>
 );
 
