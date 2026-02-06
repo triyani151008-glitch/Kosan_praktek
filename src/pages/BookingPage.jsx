@@ -37,7 +37,7 @@ const BookingPage = () => {
       try {
         if (!id) throw new Error("ID Kamar tidak ditemukan");
 
-        // A. Ambil Data Kamar (Termasuk pricing_plan)
+        // Ambil Data Kamar termasuk pricing_plan
         const { data: rm, error: rmError } = await supabase
           .from('rooms')
           .select('*')
@@ -47,7 +47,7 @@ const BookingPage = () => {
         if (rmError || !rm) throw new Error("Data kamar tidak ditemukan");
         setRoomData(rm);
 
-        // B. Ambil Data Properti
+        // Ambil Data Properti
         const { data: prop, error: propError } = await supabase
           .from('properties')
           .select('*')
@@ -64,7 +64,7 @@ const BookingPage = () => {
         }));
 
       } catch (err) {
-        console.error(err);
+        console.error("Fetch Error:", err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
         navigate(-1);
       } finally {
@@ -90,7 +90,8 @@ const BookingPage = () => {
       case 4: 
         return (
           <DurationStep 
-            pricingPlan={roomData?.pricing_plan} // Mengirim data JSONB dari DB
+            // pricingPlan mengambil objek JSONB dari database
+            pricingPlan={roomData?.pricing_plan} 
             selectedDuration={bookingData.duration}
             onSelect={(val) => {
               updateData({ duration: val, totalPrice: val.price });
@@ -108,7 +109,7 @@ const BookingPage = () => {
 
   if (loading) return (
     <div className="h-screen flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-black" />
+      <Loader2 className="animate-spin text-black" size={32} />
     </div>
   );
 
