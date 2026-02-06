@@ -4,7 +4,6 @@ import { supabase } from '@/lib/customSupabaseClient';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-// Import Komponen Stepper
 import StepIndicator from '@/components/booking/StepIndicator';
 import LocationStep from '@/components/booking/LocationStep';
 import DateStep from '@/components/booking/DateStep';
@@ -23,55 +22,34 @@ const BookingPage = () => {
   const [propertyData, setPropertyData] = useState(null);
   
   const [bookingData, setBookingData] = useState({
-    propertyId: '',
-    roomId: id,
-    location: '',
-    checkInDate: '',
-    startTime: '',
-    duration: null, 
-    totalPrice: 0
+    propertyId: '', roomId: id, location: '', checkInDate: '', startTime: '', duration: null, totalPrice: 0
   });
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         if (!id) throw new Error("ID Kamar tidak ditemukan");
-
-        // Ambil Data Kamar termasuk pricing_plan
-        const { data: rm, error: rmError } = await supabase
-          .from('rooms')
-          .select('*')
-          .eq('id', id)
-          .single();
         
+        const { data: rm, error: rmError } = await supabase.from('rooms').select('*').eq('id', id).single();
         if (rmError || !rm) throw new Error("Data kamar tidak ditemukan");
+        
+        // Debug untuk melihat data mentah dari DB
+        console.log("RAW ROOM DATA FROM DB:", rm);
         setRoomData(rm);
 
-        // Ambil Data Properti
-        const { data: prop, error: propError } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', rm.property_id)
-          .single();
-
+        const { data: prop, error: propError } = await supabase.from('properties').select('*').eq('id', rm.property_id).single();
         if (propError || !prop) throw new Error("Data properti tidak ditemukan");
+        
         setPropertyData(prop);
-
-        setBookingData(prev => ({ 
-          ...prev, 
-          propertyId: prop.id,
-          location: prop.address 
-        }));
-
+        setBookingData(prev => ({ ...prev, propertyId: prop.id, location: prop.address }));
       } catch (err) {
-        console.error("Fetch Error:", err);
+        console.error(err);
         toast({ title: "Error", description: err.message, variant: "destructive" });
         navigate(-1);
       } finally {
         setLoading(false);
       }
     };
-
     fetchInitialData();
   }, [id, navigate, toast]);
 
@@ -81,17 +59,13 @@ const BookingPage = () => {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 1: 
-        return <LocationStep data={bookingData} onNext={nextStep} property={propertyData} />;
-      case 2: 
-        return <DateStep data={bookingData} onUpdate={updateData} onNext={nextStep} onPrev={prevStep} />;
-      case 3: 
-        return <TimeStep data={bookingData} onUpdate={updateData} onNext={nextStep} onPrev={prevStep} />;
+      case 1: return <LocationStep data={bookingData} onNext={nextStep} property={propertyData} />;
+      case 2: return <DateStep data={bookingData} onUpdate={updateData} onNext={nextStep} onPrev={prevStep} />;
+      case 3: return <TimeStep data={bookingData} onUpdate={updateData} onNext={nextStep} onPrev={prevStep} />;
       case 4: 
         return (
           <DurationStep 
-            // pricingPlan mengambil objek JSONB dari database
-            pricingPlan={roomData?.pricing_plan} 
+            pricingPlan={roomData?.pricing_plan} // Mengirim kolom pricing_plan
             selectedDuration={bookingData.duration}
             onSelect={(val) => {
               updateData({ duration: val, totalPrice: val.price });
@@ -100,10 +74,8 @@ const BookingPage = () => {
             onPrev={prevStep} 
           />
         );
-      case 5: 
-        return <SummaryStep data={bookingData} room={roomData} property={propertyData} onPrev={prevStep} />;
-      default:
-        return null;
+      case 5: return <SummaryStep data={bookingData} room={roomData} property={propertyData} onPrev={prevStep} />;
+      default: return null;
     }
   };
 
@@ -128,9 +100,7 @@ const BookingPage = () => {
       </div>
       <div className="max-w-2xl mx-auto px-6 mt-8">
         <StepIndicator currentStep={currentStep} totalSteps={5} />
-        <div className="mt-8">
-          {renderStep()}
-        </div>
+        <div className="mt-8">{renderStep()}</div>
       </div>
     </div>
   );
