@@ -15,18 +15,32 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
   };
 
   /**
-   * LOGIKA PENYARINGAN (FILTERING):
-   * Kita mengambil data dari propertyData.tariffs yang berasal dari dashboard mitra.
-   * Hanya menampilkan yang memiliki 'active: true' dan 'price > 0'.
+   * PERBAIKAN LOGIKA:
+   * 1. Cek sumber data: Bisa dari 'pricing_plan' (raw DB) atau 'tariffs' (jika sudah di-transform).
+   * 2. Mapping data: Ubah 'duration' menjadi 'label' dan 'value' agar sesuai UI.
    */
   
-  const hourlyOptions = (propertyData?.tariffs?.hourly || [])
-    .filter(opt => opt.active === true && opt.price > 0)
-    .sort((a, b) => a.value - b.value);
+  // Ambil raw data dari kolom pricing_plan (atau tariffs sebagai fallback)
+  const rawData = propertyData?.pricing_plan || propertyData?.tariffs || {};
 
-  const monthlyOptions = (propertyData?.tariffs?.monthly || [])
-    .filter(opt => opt.active === true && opt.price > 0)
-    .sort((a, b) => a.value - b.value);
+  // Helper untuk memproses opsi (Map & Filter)
+  const processOptions = (items, type) => {
+    if (!Array.isArray(items)) return [];
+    
+    return items
+      .filter(item => item.active === true && item.price > 0) // Filter yang aktif saja
+      .map(item => ({
+        ...item,
+        // Jika tidak ada 'value', pakai 'duration'
+        value: item.value || item.duration, 
+        // Jika tidak ada 'label', buat label otomatis
+        label: item.label || (type === 'hour' ? `${item.duration} Jam` : `${item.duration} Bulan`)
+      }))
+      .sort((a, b) => a.value - b.value);
+  };
+
+  const hourlyOptions = processOptions(rawData.hourly, 'hour');
+  const monthlyOptions = processOptions(rawData.monthly, 'month');
 
   return (
     <div className="w-full space-y-6">
@@ -48,7 +62,7 @@ const DurationStep = ({ selectedDuration, onSelect, propertyData }) => {
                 <Button
                   key={`h-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
-                  onClick={() => onSelect({ ...opt, type: 'hour' })}
+                  onClick={() => onSelect({ ...opt, type: 'hour' })} // Kirim data lengkap
                   className="h-16 flex justify-between px-6 border-2"
                 >
                   <span className="font-bold">{opt.label}</span>
