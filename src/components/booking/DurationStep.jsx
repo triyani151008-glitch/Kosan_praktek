@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Clock, Calendar, AlertCircle } from 'lucide-react';
 
-// Sesuai dengan BookingPage.jsx, kita gunakan nama prop 'pricingPlan'
-const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
+const DurationStep = ({ pricingPlan, selectedDuration, onSelect, onPrev }) => {
   
   const formatRupiah = (amount) => {
     return new Intl.NumberFormat('id-ID', {
@@ -15,14 +14,11 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
   };
 
   /**
-   * PERBAIKAN: Masuk ke dalam properti .plans
-   * Sesuai struktur di DB: pricing_plan.hourly.plans
+   * Logika Pengambilan Data:
+   * Mengambil Array dari pricingPlan[type].plans sesuai video DB
    */
-  const processOptions = (type) => {
-    // Ambil array plans dari objek hourly atau monthly
+  const getOptions = (type) => {
     const items = pricingPlan?.[type]?.plans || [];
-    
-    if (!Array.isArray(items)) return [];
     
     return items
       .filter(opt => opt.active === true && opt.price > 0)
@@ -35,11 +31,11 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
       .sort((a, b) => a.value - b.value);
   };
 
-  const hourlyOptions = processOptions('hourly');
-  const monthlyOptions = processOptions('monthly');
+  const hourlyOptions = getOptions('hourly');
+  const monthlyOptions = getOptions('monthly');
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <Tabs defaultValue="hourly" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="hourly">
@@ -58,7 +54,7 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
                   key={`h-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'hour' ? "default" : "outline"}
                   onClick={() => onSelect(opt)}
-                  className="h-16 flex justify-between px-6 border-2"
+                  className="h-16 flex justify-between px-6 border-2 transition-all hover:border-black"
                 >
                   <span className="font-bold">{opt.label}</span>
                   <span className="font-medium opacity-80">{formatRupiah(opt.price)}</span>
@@ -78,7 +74,7 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
                   key={`m-${opt.value}`}
                   variant={selectedDuration?.value === opt.value && selectedDuration?.type === 'month' ? "default" : "outline"}
                   onClick={() => onSelect(opt)}
-                  className="h-16 flex justify-between px-6 border-2"
+                  className="h-16 flex justify-between px-6 border-2 transition-all hover:border-black"
                 >
                   <span className="font-bold">{opt.label}</span>
                   <span className="font-medium opacity-80">{formatRupiah(opt.price)}</span>
@@ -90,6 +86,10 @@ const DurationStep = ({ selectedDuration, onSelect, pricingPlan }) => {
           )}
         </TabsContent>
       </Tabs>
+      
+      <Button variant="ghost" onClick={onPrev} className="w-full text-gray-400 text-xs">
+        Kembali ke Pengaturan Jam
+      </Button>
     </div>
   );
 };
