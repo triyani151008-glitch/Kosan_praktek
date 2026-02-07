@@ -8,10 +8,9 @@ const DashboardMitra = ({ roomId, onBack }) => {
   const { user } = useSupabaseAuth();
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('hourly'); // 'hourly' (Transit) atau 'monthly'
+  const [activeTab, setActiveTab] = useState('hourly'); 
   const [selectedRoom, setSelectedRoom] = useState(null);
 
-  // 1. Ambil data kamar saat komponen dibuka
   useEffect(() => {
     const fetchRoomData = async () => {
       try {
@@ -29,11 +28,10 @@ const DashboardMitra = ({ roomId, onBack }) => {
         setLoading(false);
       }
     };
-
     if (roomId) fetchRoomData();
   }, [roomId]);
 
-  // 2. Logika Update Harga (Fokus: Aktifkan Fitur)
+  // AKTIVASI FITUR: Pastikan status 'active' ikut terupdate saat harga diisi
   const handleUpdatePricing = (dur, value) => {
     const numValue = Number(value);
     const currentPricing = selectedRoom.pricing_plan || { hourly: {}, monthly: {} };
@@ -43,7 +41,7 @@ const DashboardMitra = ({ roomId, onBack }) => {
       ...currentPricing[tabKey],
       [dur]: {
         price: numValue,
-        active: numValue > 0 // Otomatis aktif jika harga diisi
+        active: numValue > 0 // FITUR: Otomatis AKTIF jika harga diisi
       }
     };
 
@@ -53,21 +51,14 @@ const DashboardMitra = ({ roomId, onBack }) => {
     });
   };
 
-  // 3. Logika Toggle Fasilitas (Amenity)
   const toggleAmenity = (amenityName) => {
     const currentAmenities = selectedRoom.amenities || [];
-    let updated;
-    
-    if (currentAmenities.includes(amenityName)) {
-      updated = currentAmenities.filter(a => a !== amenityName);
-    } else {
-      updated = [...currentAmenities, amenityName];
-    }
-
+    const updated = currentAmenities.includes(amenityName)
+      ? currentAmenities.filter(a => a !== amenityName)
+      : [...currentAmenities, amenityName];
     setSelectedRoom({ ...selectedRoom, amenities: updated });
   };
 
-  // 4. Fungsi Simpan ke Database
   const saveChanges = async () => {
     setIsSaving(true);
     try {
@@ -81,9 +72,9 @@ const DashboardMitra = ({ roomId, onBack }) => {
         .eq('id', roomId);
 
       if (error) throw error;
-      toast({ title: "Berhasil", description: "Perubahan telah disimpan ke server." });
+      toast({ title: "Berhasil", description: "Tarif dan fasilitas telah diperbarui." });
     } catch (err) {
-      toast({ title: "Gagal Menyimpan", description: err.message, variant: "destructive" });
+      toast({ title: "Gagal", description: err.message, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -93,36 +84,23 @@ const DashboardMitra = ({ roomId, onBack }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header - Sesuai tampilan Anda */}
+      {/* Header Sesuai UI Anda */}
       <div className="bg-white p-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-1"><ChevronLeft /></button>
-          <h1 className="font-bold text-lg text-gray-800">EDIT {selectedRoom?.room_number}</h1>
+          <h1 className="font-bold text-lg text-gray-800 uppercase">EDIT {selectedRoom?.room_number}</h1>
         </div>
-        <button 
-          onClick={saveChanges} 
-          disabled={isSaving}
-          className="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
-        >
+        <button onClick={saveChanges} disabled={isSaving} className="bg-black text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
           {isSaving ? "Menyimpan..." : <><Save size={16} /> SIMPAN</>}
         </button>
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Seksi Fasilitas - */}
         <div className="bg-white p-4 rounded-2xl shadow-sm">
           <h2 className="text-sm font-bold text-gray-500 mb-4 tracking-widest uppercase">Fasilitas Kamar</h2>
           <div className="grid grid-cols-2 gap-3">
             {['WIFI', 'AC', 'SMART TV', 'KAMAR MANDI DALAM', 'WATER HEATER', 'MEJA KERJA', 'LEMARI PAKAIAN', 'DISPENSER'].map((item) => (
-              <button
-                key={item}
-                onClick={() => toggleAmenity(item)}
-                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                  selectedRoom.amenities?.includes(item) 
-                  ? 'border-black bg-gray-50 font-bold' 
-                  : 'border-gray-100 text-gray-400'
-                }`}
-              >
+              <button key={item} onClick={() => toggleAmenity(item)} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${selectedRoom.amenities?.includes(item) ? 'border-black bg-gray-50 font-bold' : 'border-gray-100 text-gray-400'}`}>
                 <span className="text-xs">{item}</span>
                 {selectedRoom.amenities?.includes(item) && <Check size={14} />}
               </button>
@@ -130,27 +108,12 @@ const DashboardMitra = ({ roomId, onBack }) => {
           </div>
         </div>
 
-        {/* Seksi Tarif - */}
         <div className="bg-white p-4 rounded-2xl shadow-sm">
           <h2 className="text-sm font-bold text-gray-500 mb-4 tracking-widest uppercase">Atur Durasi & Tarif</h2>
-          
-          {/* Tab Selector */}
           <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-            <button 
-              onClick={() => setActiveTab('hourly')}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'hourly' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-            >
-              TRANSIT (JAM)
-            </button>
-            <button 
-              onClick={() => setActiveTab('monthly')}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'monthly' ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-            >
-              BULANAN
-            </button>
+            <button onClick={() => setActiveTab('hourly')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'hourly' ? 'bg-white shadow-sm' : 'text-gray-400'}`}>TRANSIT (JAM)</button>
+            <button onClick={() => setActiveTab('monthly')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'monthly' ? 'bg-white shadow-sm' : 'text-gray-400'}`}>BULANAN</button>
           </div>
-
-          {/* List Input Harga */}
           <div className="space-y-4">
             {(activeTab === 'hourly' ? ['1', '2', '3', '4', '5', '6', '12', '24'] : ['1', '2', '3', '6', '12']).map((dur) => (
               <div key={dur} className="flex items-center gap-4 p-3 border border-gray-100 rounded-xl">
